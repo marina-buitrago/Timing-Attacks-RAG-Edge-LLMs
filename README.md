@@ -2,21 +2,13 @@
 
 Code, data and results for the paper **"Feasibility of timing attacks to Retrieval-Augmented Generation in edge LLMs"**.
 
-> **Release status.** The paper is currently under review. This repository is a **partial release**: it contains all the code, the query datasets, the selected target nouns, and the aggregated results behind every figure and table (metrics, confusion matrices, classification reports, budget summaries, LaTeX tables), together with a sample of the raw timing data. The full raw latency measurements, large intermediate files and detailed per-run outputs **are available from the authors upon request** and will be released once the paper is accepted. See [Data availability](#0-data-availability) for the exact list.
+> **Release status.** The paper is currently under review. This repository is a **partial release**: it contains all the code, the query datasets, the selected target nouns, and the aggregated results behind every figure and table (metrics, confusion matrices, classification reports, budget summaries, result tables), together with a sample of the raw timing data. The full raw latency measurements, large intermediate files and detailed per-run outputs **are available from the authors upon request** and will be released once the paper is accepted. See [Data availability](#0-data-availability) for the exact list.
 
 The paper shows that the **execution time** of a RAG-based chatbot leaks information about:
 
 1. **What is inside the RAG corpus** (*RAG content frequency inference*). Given a noun, an attacker infers how frequent it is in the hidden knowledge base. There are six classes: *Very high, High, Moderate, Low, Very low, Term not present*.
 2. **What a legitimate user is asking about** (*topic inference of RAG uses*). Given only the timing of a victim's query, the attacker infers the semantic category of its target noun (5 classes per corpus).
 
-Both attacks are evaluated against two attacker models:
-
-| | Black-box attacker | White-box attacker |
-|---|---|---|
-| Knows the corpus `D` | No | Yes |
-| Observes | end-to-end latency `L_e2e` (+ query length, answer size) | `L_e2e` + internal latencies `L_ret`, `L_fmt`, `L_llm` (+ sizes) |
-| Frequency attack | sends its own queries; semi-supervised, labels only 3 "anchor" classes | supervised on the known corpus, predicts the victim's hidden noun |
-| Topic attack | times victim queries | times victim queries |
 
 The experiments cover 2 corpora (PubMed Central and PG19), 3 edge LLMs (SmolLM2-135M-Instruct, Qwen2.5-0.5B-Instruct, Granite-3.0-1b-a400m-instruct), and runs with and without an application-level Redis cache. KV-cache and ChromaDB caching are always on. Each configuration is also tested under six query budgets (100% down to 5%).
 
@@ -28,7 +20,7 @@ The experiments cover 2 corpora (PubMed Central and PG19), 3 edge LLMs (SmolLM2-
 
 | What | Where |
 |---|---|
-| All source code: ingestion, noun extraction, segmented regression, partitioning, neighbourhood filter, RAG runners, SLURM jobs, attack notebooks, table notebooks | every folder |
+| Source code: ingestion, noun extraction, segmented regression, partitioning, neighbourhood filter, RAG runners, SLURM jobs, attack notebooks | every folder |
 | Query templates, selected target nouns (Tables 7–8) and the final query datasets (1,800 queries per corpus) | `queries/Queries-creation/`, `setup/datasets/partitions/` |
 | Noun frequency lists and noun-to-partition assignments | `term-frequencies-partitions/term_frequencies-*/` |
 | Breakpoints, BIC tables, stability tables and Fig. 2 | `visuals-frequency-distributions-both-experiments/frequency_regime_results/` |
@@ -82,13 +74,13 @@ Contact: Marina Buitrago-Perez — marina.buitrago@alumnos.uc3m.es
 
 ---
 
-## 1. Pipeline at a glance
+## 1. Pipeline
 
 ```mermaid
 flowchart TD
     A[HF datasets<br/>PubMed Central / PG19] -->|ingestion-*/ingest_*.py| B[(ChromaDB<br/>1000-char chunks<br/>all-MiniLM-L6-v2)]
     B -->|extract_*_terms.py| C[noun_frequencies_*.csv]
-    C -->|classify_frequency_regimes.py| D[BIC-selected breakpoints<br/>6 segments]
+    C -->|classify_frequency_regimes.py| D[BIC-selected breakpoints<br/>]
     D -->|select-partition-*.py| E[*_terms_with_partitions.csv]
     E -->|neighbours_*.py + select_representative_nouns.py| F[representative candidate nouns]
     F -->|manual choice + absent terms| G[Selected target nouns<br/>Tables 7-8]
@@ -280,11 +272,10 @@ python ingestion-pg19/ingest_pg19.py
 
 Set `MAX_DOCUMENTS = 100` (or `1000`) at the top of the script for a quick test. If CUDA runs out of memory, lower `ENCODE_BATCH_SIZE` first.
 
-> **Small difference between the two scripts.** PubMed strips each chunk and keeps it if it has **more than 50** characters. PG19 does not strip and keeps it if it has **at least 50** characters.
 
 ### Step 2: Extract noun frequencies (paper §4.2.1)
 
-**Scripts:** `term-frequencies-partitions/term_frequencies-pubmed/extract_pubmed_terms.py`, `term-frequencies-partitions/term_frequencies-pg19/extract_pg19_terms.py`
+**Scripts:** `term-frequencies-partitions/xterm_frequencies-pubmed/extract_pubmed_terms.py`, `term-frequencies-partitions/term_frequencies-pg19/extract_pg19_terms.py`
 
 1. Reads every chunk back from ChromaDB, in pages of 5,000.
 2. Runs spaCy (parser and NER disabled) and keeps tokens that pass all of these filters:
@@ -641,14 +632,10 @@ Every experiment folder (`white-box-freq`, `black-box-freq`, `white-box-cat-fina
 The attacker knows the corpus, so every training noun has its true frequency label. The task is to predict the 6-class frequency of a **held-out victim noun** from timing alone.
 
 1. **Rows.** One row per query (1,800). The 8 executions (4 *k* × 2 iterations) of each query are merged into one feature vector.
-2. **Features.** For each of 11 observed signals (`rag_end_to_end`, `retrieval`, `llm`, `prompt_formatting`, `component_sum`, `overhead`, `latency_ms`, `num_retrieved_docs`, `context_num_chars`, `prompt_num_chars`, `answer_num_chars`), the notebook computes:
-   - the 8 raw values `signal__k{k}__iteration{i}`
-   - their mean, std, min, max and median
-   - the slope of the per-*k* mean against *k*
+2. **Features.** (`rag_end_to_end`, `retrieval`, `llm`, `prompt_formatting`, `component_sum`, `overhead`, `latency_ms`, `num_retrieved_docs`, `context_num_chars`, `prompt_num_chars`, `answer_num_chars`),  `signal__k{k}__iteration{i}`,`query_num_chars`, `query_num_words` and the one-hot query `length`.
 
-   It also adds `query_num_chars`, `query_num_words`, a signed `log1p` copy of every numeric feature, and the one-hot query `length`.
+Labels, IDs, query text and category are never features. 
 
-   Labels, IDs, query text and category are never features. The code asserts this.
 3. **Split by noun.** For each frequency class, 2 of its 10 nouns are held out for test (`numpy` RNG, seed 42). That gives 48 training nouns (1,440 queries) and 12 test nouns (360 queries). No noun appears in both sets.
 4. **Model selection on training nouns only.** `StratifiedGroupKFold(4)` grouped by noun compares three candidates and keeps the one with the best CV macro-F1:
    - `supplied_random_forest`: RF, 200 trees, Gini, `max_depth=30`, `min_samples_split=15`, `min_samples_leaf=5`
@@ -677,7 +664,7 @@ The attacker knows the corpus, so every training noun has its true frequency lab
 
 The attacker does not know the corpus. It only **guesses** labels for clear anchor terms, such as *cancer* (surely very frequent in a medical RAG) and *Brachiosaurus* (surely absent). It sends its own queries and only sees end-to-end latency.
 
-1. **Features.** Per query, the 8 values of `rag_end_to_end_latency_ms` (4 *k* × 2 iterations), each `log1p`-transformed. No other column is used.
+1. **Features.** Per query, the 8 values of `rag_end_to_end_latency_ms` (4 *k* × 2 iterations). No other column is used.
 2. **Split.** The same noun-disjoint 80/20 split as the white-box attack (2 test nouns per class, seed 42).
 3. **Anchor-only labels.** The learner only sees labels for **Very high, Very low and Term not present**. *High, Moderate* and *Low* training labels are hidden (`training_label_audit.csv` shows this).
 4. **Ordinal semi-supervised model** (`AnchorOnlyOrdinalModel`):
@@ -702,26 +689,20 @@ metrics = rt.run_experiment(box="white", cache=False, dataset="pg19", model="qwe
                             output_directory=Path("pg19_qwen_white_box_topic_results"))
 ```
 
-**Why the method differs from the frequency attack.** Each topic is asked with its *own* templates ("Who is X?" for people, "Where is X?" for places, …). Any feature built from the query text, including query length, therefore gives the topic away without using timing at all. The final topic attack therefore **never uses** `query_text`, query length, `prompt_num_chars` (the prompt contains the query), the send position, or any label or ID column.
-
 1. **Signals.**
    - *Black-box:* `rag_end_to_end_latency_ms`, `answer_num_chars`
    - *White-box:* the black-box signals plus `retrieval`, `llm`, `prompt_formatting`, `component_sum`, `overhead`, `latency_ms`, `context_num_chars`
-2. **Drift correction.** Queries were sent in a fixed order, grouped by topic. Within each (*k*, iteration) block, sorted by send position, every signal is divided by its centred **rolling median over 101 queries**. This removes slow machine drift that would otherwise line up with topic.
-3. **One prediction per target noun** (60 nouns per corpus). All probes of a noun are combined. After `log1p`, for each signal:
-   - per *k*: mean, std, median, 10th and 90th percentile
-   - the slope of the per-*k* mean against log *k*
-   - the per-*k* repeat effect (iteration 2 − iteration 1)
 
-   That is 25 features per signal: 225 for white-box, 50 for black-box.
-4. **Nested cross-validation over nouns.** Outer `StratifiedKFold(5)` scores the pipeline. Inner `StratifiedKFold(3)` chooses one of four candidates by macro-F1, on training nouns only:
+
+2. **Nested cross-validation over nouns.** Outer `StratifiedKFold(5)` scores the pipeline. Inner `StratifiedKFold(3)` chooses one of four candidates by macro-F1, on training nouns only:
    - `extra_trees_narrow`: 500 trees, `max_features=0.1`
    - `extra_trees_wide`: 500 trees, `max_features=0.3`, `min_samples_leaf=3`
    - `random_forest`: 500 trees, `sqrt` features, `min_samples_leaf=2`
    - `logistic_regression`: standardised, `C=0.1`
 
    All candidates use `class_weight="balanced"`. Every noun is tested exactly once. The procedure is repeated for seeds {0, 1, 2}, and the reported value is mean ± std.
-5. **Permutation test.** The whole pipeline is re-run on 50 random shufflings of the topic labels to get a null distribution and a p-value.
+
+3. **Permutation test.** The whole pipeline is re-run on 50 random shufflings of the topic labels to get a null distribution and a p-value.
 
 **Outputs** (`<corpus>_<model>[_cache]_<box>_box_topic_results/`):
 
@@ -759,12 +740,10 @@ For the **frequency** attacks the noun-disjoint train/test split is fixed at 100
 ### Step 14: Model differences and paper tables
 
 - `*-model-differences.ipynb`, one per experiment and cache folder, reads the per-model `metrics.json` files. It reports the pairwise and largest Macro-F1 (and OW-Acc) differences between SmolLM2, Qwen2.5 and Granite. Results go to `*_model_differences_results/`. This is the "Max F1 difference between models" column of Table 2.
-- `classificators/full-queries-table.ipynb` collects the 100% rows of all 16 `budget_summary.csv` files. It writes `full_queries_tables/full_queries_table.{csv,tex}`, which is **Table 2**.
+- `classificators/full-queries-table.ipynb` collects the 100% rows of all 16 `budget_summary.csv` files. It writes `full_queries_tables/full_queries_table.csv`, which is **Table 2**.
 - `classificators/budget-reduction-table-final.ipynb` collects all budget rows and writes `budget_reduction_tables_final/`:
   - `budget_results_long.csv`
-  - `table4_{random,shared}_templates.{csv,tex}`: the *No cache* half of the random-templates table is **Table 4** and the *Cache* half is **Table 5**
-
-The LaTeX output needs `booktabs`, `longtable`, `multirow` and `xcolor[table]`.
+  - `table4_{random,shared}_templates.csv`: the *No cache* half of the random-templates table is **Table 4** and the *Cache* half is **Table 5**
 
 ---
 
@@ -779,22 +758,6 @@ The LaTeX output needs `booktabs`, `longtable`, `multirow` and `xcolor[table]`.
   | score | 1.0 | 0.8 | 0.6 | 0 |
 
   OW-Acc is the mean score. The frequency notebooks also report ordinal-weighted precision, recall and F1 per class.
-
----
-
-## 7. Where each paper figure and table comes from
-
-| Paper | Source |
-|---|---|
-| Fig. 2: segmented rank-frequency fit | `visuals-frequency-distributions-both-experiments/plot_combined_segmented_fit.py` → `frequency_regime_results/pg19_pubmed_segmented_fit.png` |
-| Table 2: full-budget results | `classificators/full-queries-table.ipynb` (+ `*-model-differences.ipynb`) |
-| Table 3: Kruskal–Wallis / Mann–Whitney | ⚠️ *Not in this folder (see §10)* |
-| Fig. 3: white-box confusion matrices (Qwen2.5, no cache) | `classificators/white-box-freq/no-cache/{pg19,pubmed}_qwen_white_box_freq_results/confusion_matrix.png` |
-| Fig. 4: black-box confusion matrices (SmolLM2, no cache) | `classificators/black-box-freq/no-cache/{pg19,pubmed}_smol_black_box_freq_results/confusion_matrix.png` |
-| Tables 4 and 5: query budgets | `classificators/budget_reduction_tables_final/table4_random_templates.{csv,tex}` |
-| Tables 7 and 8: target nouns | `queries/Queries-creation/{PG19,Pubmed}-selected-terms.txt` |
-
-The included `metrics.json` files reproduce the Table 2 values exactly. For example, white-box frequency, PG19, no cache: SmolLM2 0.74 / Qwen2.5 0.58 / Granite 0.72. Black-box topic, PG19, no cache: 0.37 / 0.42 / 0.49.
 
 ---
 
@@ -829,10 +792,6 @@ The scripts were written against two working copies (`~/RAG-timing` on the clust
 
 Other notes:
 
-- `select-partition-pubmed.py` is empty (see Step 4).
-- **Preprocessing is not identical across corpora.** The spaCy model differs (`sm` vs `trf`), the biomedical stop-noun list applies to PubMed only, and the chunk-length test differs slightly (Step 1).
-- The retrieval-only benchmark ran with 2 iterations in the jobs, not the default 30. The attacks do not use it.
-- **Table 3** (Kruskal–Wallis H tests and Holm-corrected pairwise Mann–Whitney U tests on the six frequency strata) has no generating script in this folder.
 - Several intermediate CSVs exceed GitHub's 100 MB file limit (`*_terms_with_neighbour_scores.csv` ≈ 140–320 MB, `*_terms_with_relaxed_representativeness.csv` ≈ 170–400 MB). They are not in this repository and are available upon request (see [§0](#0-data-availability)).
 
 ---
