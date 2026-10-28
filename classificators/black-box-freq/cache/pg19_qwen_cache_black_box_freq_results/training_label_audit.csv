@@ -1,0 +1,7 @@
+true_frequency_for_audit_only,label_exposed_to_model,queries
+High,UNLABELED,240
+Low,UNLABELED,240
+Moderate,UNLABELED,240
+Term not present,Term not present,240
+Very high,Very high,240
+Very low,Very low,240

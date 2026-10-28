@@ -1,0 +1,6 @@
+True topic,Person or social role,Object or artifact,Place or setting,Institution or collective,Abstract concept
+Person or social role,7,1,2,1,1
+Object or artifact,1,7,2,1,1
+Place or setting,5,1,4,2,0
+Institution or collective,3,1,4,3,1
+Abstract concept,0,0,1,1,10

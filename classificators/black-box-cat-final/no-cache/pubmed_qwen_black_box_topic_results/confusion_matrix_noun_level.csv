@@ -1,0 +1,6 @@
+True topic,Disease or condition,Treatment or intervention,Biological entity,Diagnostic method,Anatomy
+Disease or condition,3,2,0,1,6
+Treatment or intervention,4,5,0,3,0
+Biological entity,2,0,5,2,3
+Diagnostic method,1,6,1,3,1
+Anatomy,3,0,3,0,6

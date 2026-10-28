@@ -1,0 +1,107 @@
+\definecolor{tablegreen}{HTML}{1F5C2E}
+\begingroup\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{llcccccccccc}
+\caption{Attack performance under query budget reductions (random templates)}\\
+\toprule
+ & & \multicolumn{3}{c}{White-box. Content frequency} & \multicolumn{3}{c}{Black-box. Content frequency} & \multicolumn{2}{c}{White-box. Topic of use} & \multicolumn{2}{c}{Black-box. Topic of use} \\
+Model & $b$ & Macro-F$_1$ & Gain over random & OWAcc & Macro-F$_1$ & Gain over random & OWAcc & Macro-F$_1$ & Gain over random & Macro-F$_1$ & Gain over random \\
+\midrule
+\endfirsthead
+\toprule
+ & & \multicolumn{3}{c}{White-box. Content frequency} & \multicolumn{3}{c}{Black-box. Content frequency} & \multicolumn{2}{c}{White-box. Topic of use} & \multicolumn{2}{c}{Black-box. Topic of use} \\
+Model & $b$ & Macro-F$_1$ & Gain over random & OWAcc & Macro-F$_1$ & Gain over random & OWAcc & Macro-F$_1$ & Gain over random & Macro-F$_1$ & Gain over random \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+\midrule
+\multicolumn{12}{l}{\textbf{Random templates -- No cache -- PG19}} \\
+\multirow{6}{*}{smol} & 100\% & 0.74 & \cellcolor{tablegreen!99}\textcolor{white}{345\%} & 0.88 & 0.39 & \cellcolor{tablegreen!37}131\% & 0.78 & 0.36 & \cellcolor{tablegreen!23}80\% & 0.37 & \cellcolor{tablegreen!24}84\% \\
+ & 75\% & 0.71 & \cellcolor{tablegreen!93}\textcolor{white}{325\%} & 0.87 & 0.38 & \cellcolor{tablegreen!37}130\% & 0.79 & 0.39 & \cellcolor{tablegreen!27}94\% & 0.38 & \cellcolor{tablegreen!26}92\% \\
+ & 50\% & 0.66 & \cellcolor{tablegreen!84}\textcolor{white}{295\%} & 0.84 & 0.32 & \cellcolor{tablegreen!26}92\% & 0.77 & 0.31 & \cellcolor{tablegreen!16}55\% & 0.30 & \cellcolor{tablegreen!15}52\% \\
+ & 25\% & 0.58 & \cellcolor{tablegreen!71}\textcolor{white}{247\%} & 0.83 & 0.32 & \cellcolor{tablegreen!26}90\% & 0.75 & 0.31 & \cellcolor{tablegreen!16}57\% & 0.31 & \cellcolor{tablegreen!15}53\% \\
+ & 10\% & 0.49 & \cellcolor{tablegreen!55}192\% & 0.77 & 0.27 & \cellcolor{tablegreen!17}60\% & 0.71 & 0.19 & \cellcolor[HTML]{E8A0A0}-7\% & 0.25 & \cellcolor{tablegreen!7}25\% \\
+ & 5\% & 0.39 & \cellcolor{tablegreen!38}132\% & 0.76 & 0.06 & \cellcolor[HTML]{E8A0A0}-67\% & 0.69 & 0.13 & \cellcolor[HTML]{E8A0A0}-37\% & 0.16 & \cellcolor[HTML]{E8A0A0}-19\% \\
+\cmidrule(l){1-12}
+\multirow{6}{*}{qwen} & 100\% & 0.58 & \cellcolor{tablegreen!70}\textcolor{white}{246\%} & 0.85 & 0.39 & \cellcolor{tablegreen!39}136\% & 0.80 & 0.39 & \cellcolor{tablegreen!27}93\% & 0.42 & \cellcolor{tablegreen!32}112\% \\
+ & 75\% & 0.54 & \cellcolor{tablegreen!64}\textcolor{white}{223\%} & 0.84 & 0.41 & \cellcolor{tablegreen!41}143\% & 0.80 & 0.39 & \cellcolor{tablegreen!26}93\% & 0.48 & \cellcolor{tablegreen!40}138\% \\
+ & 50\% & 0.52 & \cellcolor{tablegreen!61}\textcolor{white}{213\%} & 0.82 & 0.42 & \cellcolor{tablegreen!44}155\% & 0.80 & 0.25 & \cellcolor{tablegreen!7}23\% & 0.36 & \cellcolor{tablegreen!23}80\% \\
+ & 25\% & 0.48 & \cellcolor{tablegreen!53}187\% & 0.77 & 0.44 & \cellcolor{tablegreen!46}161\% & 0.80 & 0.30 & \cellcolor{tablegreen!15}51\% & 0.29 & \cellcolor{tablegreen!13}44\% \\
+ & 10\% & 0.45 & \cellcolor{tablegreen!49}170\% & 0.82 & 0.39 & \cellcolor{tablegreen!38}133\% & 0.74 & 0.19 & \cellcolor[HTML]{E8A0A0}-3\% & 0.24 & \cellcolor{tablegreen!6}21\% \\
+ & 5\% & 0.46 & \cellcolor{tablegreen!50}174\% & 0.69 & 0.38 & \cellcolor{tablegreen!36}126\% & 0.72 & 0.22 & \cellcolor{tablegreen!2}8\% & 0.28 & \cellcolor{tablegreen!12}42\% \\
+\cmidrule(l){1-12}
+\multirow{6}{*}{granite} & 100\% & 0.72 & \cellcolor{tablegreen!95}\textcolor{white}{332\%} & 0.87 & 0.38 & \cellcolor{tablegreen!36}127\% & 0.73 & 0.45 & \cellcolor{tablegreen!35}123\% & 0.49 & \cellcolor{tablegreen!42}147\% \\
+ & 75\% & 0.72 & \cellcolor{tablegreen!95}\textcolor{white}{331\%} & 0.86 & 0.37 & \cellcolor{tablegreen!35}122\% & 0.73 & 0.40 & \cellcolor{tablegreen!29}102\% & 0.44 & \cellcolor{tablegreen!35}121\% \\
+ & 50\% & 0.69 & \cellcolor{tablegreen!90}\textcolor{white}{315\%} & 0.85 & 0.39 & \cellcolor{tablegreen!39}136\% & 0.74 & 0.38 & \cellcolor{tablegreen!25}89\% & 0.31 & \cellcolor{tablegreen!16}57\% \\
+ & 25\% & 0.63 & \cellcolor{tablegreen!80}\textcolor{white}{278\%} & 0.80 & 0.29 & \cellcolor{tablegreen!21}74\% & 0.75 & 0.35 & \cellcolor{tablegreen!21}74\% & 0.29 & \cellcolor{tablegreen!13}46\% \\
+ & 10\% & 0.47 & \cellcolor{tablegreen!52}183\% & 0.74 & 0.41 & \cellcolor{tablegreen!42}148\% & 0.75 & 0.25 & \cellcolor{tablegreen!7}25\% & 0.20 & \cellcolor[HTML]{E8A0A0}-0\% \\
+ & 5\% & 0.42 & \cellcolor{tablegreen!43}151\% & 0.69 & 0.41 & \cellcolor{tablegreen!41}144\% & 0.82 & 0.27 & \cellcolor{tablegreen!9}33\% & 0.20 & \cellcolor[HTML]{E8A0A0}-1\% \\
+\midrule
+\multicolumn{12}{l}{\textbf{Random templates -- No cache -- PubMed}} \\
+\multirow{6}{*}{smol} & 100\% & 0.61 & \cellcolor{tablegreen!77}\textcolor{white}{268\%} & 0.84 & 0.32 & \cellcolor{tablegreen!26}91\% & 0.72 & 0.35 & \cellcolor{tablegreen!21}74\% & 0.40 & \cellcolor{tablegreen!29}101\% \\
+ & 75\% & 0.60 & \cellcolor{tablegreen!75}\textcolor{white}{261\%} & 0.83 & 0.30 & \cellcolor{tablegreen!23}81\% & 0.72 & 0.40 & \cellcolor{tablegreen!29}100\% & 0.39 & \cellcolor{tablegreen!27}96\% \\
+ & 50\% & 0.57 & \cellcolor{tablegreen!68}\textcolor{white}{240\%} & 0.81 & 0.35 & \cellcolor{tablegreen!31}107\% & 0.70 & 0.34 & \cellcolor{tablegreen!19}68\% & 0.31 & \cellcolor{tablegreen!16}55\% \\
+ & 25\% & 0.47 & \cellcolor{tablegreen!52}181\% & 0.77 & 0.26 & \cellcolor{tablegreen!16}57\% & 0.67 & 0.34 & \cellcolor{tablegreen!20}71\% & 0.26 & \cellcolor{tablegreen!9}30\% \\
+ & 10\% & 0.41 & \cellcolor{tablegreen!42}147\% & 0.75 & 0.38 & \cellcolor{tablegreen!37}128\% & 0.73 & 0.13 & \cellcolor[HTML]{E8A0A0}-33\% & 0.18 & \cellcolor[HTML]{E8A0A0}-9\% \\
+ & 5\% & 0.18 & \cellcolor{tablegreen!2}6\% & 0.63 & 0.28 & \cellcolor{tablegreen!20}70\% & 0.71 & 0.09 & \cellcolor[HTML]{E8A0A0}-53\% & 0.12 & \cellcolor[HTML]{E8A0A0}-39\% \\
+\cmidrule(l){1-12}
+\multirow{6}{*}{qwen} & 100\% & 0.67 & \cellcolor{tablegreen!86}\textcolor{white}{303\%} & 0.87 & 0.43 & \cellcolor{tablegreen!45}158\% & 0.80 & 0.36 & \cellcolor{tablegreen!23}80\% & 0.31 & \cellcolor{tablegreen!16}57\% \\
+ & 75\% & 0.66 & \cellcolor{tablegreen!84}\textcolor{white}{294\%} & 0.88 & 0.41 & \cellcolor{tablegreen!42}145\% & 0.80 & 0.46 & \cellcolor{tablegreen!37}128\% & 0.33 & \cellcolor{tablegreen!18}64\% \\
+ & 50\% & 0.62 & \cellcolor{tablegreen!78}\textcolor{white}{272\%} & 0.85 & 0.36 & \cellcolor{tablegreen!33}115\% & 0.79 & 0.38 & \cellcolor{tablegreen!26}92\% & 0.27 & \cellcolor{tablegreen!10}35\% \\
+ & 25\% & 0.60 & \cellcolor{tablegreen!75}\textcolor{white}{261\%} & 0.87 & 0.28 & \cellcolor{tablegreen!20}68\% & 0.76 & 0.23 & \cellcolor{tablegreen!4}13\% & 0.30 & \cellcolor{tablegreen!14}51\% \\
+ & 10\% & 0.58 & \cellcolor{tablegreen!70}\textcolor{white}{246\%} & 0.82 & 0.39 & \cellcolor{tablegreen!39}136\% & 0.79 & 0.23 & \cellcolor{tablegreen!4}14\% & 0.21 & \cellcolor{tablegreen!2}7\% \\
+ & 5\% & 0.31 & \cellcolor{tablegreen!24}84\% & 0.74 & 0.17 & \cellcolor{tablegreen!1}3\% & 0.68 & 0.13 & \cellcolor[HTML]{E8A0A0}-35\% & 0.16 & \cellcolor[HTML]{E8A0A0}-20\% \\
+\cmidrule(l){1-12}
+\multirow{6}{*}{granite} & 100\% & 0.61 & \cellcolor{tablegreen!76}\textcolor{white}{265\%} & 0.86 & 0.38 & \cellcolor{tablegreen!36}126\% & 0.74 & 0.40 & \cellcolor{tablegreen!28}99\% & 0.43 & \cellcolor{tablegreen!33}117\% \\
+ & 75\% & 0.57 & \cellcolor{tablegreen!69}\textcolor{white}{241\%} & 0.85 & 0.35 & \cellcolor{tablegreen!32}112\% & 0.74 & 0.37 & \cellcolor{tablegreen!25}87\% & 0.41 & \cellcolor{tablegreen!30}106\% \\
+ & 50\% & 0.55 & \cellcolor{tablegreen!65}\textcolor{white}{227\%} & 0.84 & 0.35 & \cellcolor{tablegreen!31}109\% & 0.75 & 0.30 & \cellcolor{tablegreen!15}52\% & 0.33 & \cellcolor{tablegreen!19}67\% \\
+ & 25\% & 0.52 & \cellcolor{tablegreen!60}211\% & 0.81 & 0.33 & \cellcolor{tablegreen!28}98\% & 0.74 & 0.34 & \cellcolor{tablegreen!20}70\% & 0.26 & \cellcolor{tablegreen!8}29\% \\
+ & 10\% & 0.48 & \cellcolor{tablegreen!54}189\% & 0.78 & 0.29 & \cellcolor{tablegreen!21}75\% & 0.68 & 0.34 & \cellcolor{tablegreen!20}70\% & 0.30 & \cellcolor{tablegreen!15}52\% \\
+ & 5\% & 0.19 & \cellcolor{tablegreen!3}11\% & 0.71 & 0.26 & \cellcolor{tablegreen!16}56\% & 0.71 & 0.27 & \cellcolor{tablegreen!10}35\% & 0.24 & \cellcolor{tablegreen!5}19\% \\
+\midrule
+\multicolumn{12}{l}{\textbf{Random templates -- Cache -- PG19}} \\
+\multirow{6}{*}{smol} & 100\% & 0.46 & \cellcolor{tablegreen!50}176\% & 0.73 & 0.25 & \cellcolor{tablegreen!14}51\% & 0.68 & 0.49 & \cellcolor{tablegreen!41}143\% & 0.40 & \cellcolor{tablegreen!28}99\% \\
+ & 75\% & 0.46 & \cellcolor{tablegreen!51}177\% & 0.75 & 0.28 & \cellcolor{tablegreen!19}65\% & 0.67 & 0.43 & \cellcolor{tablegreen!32}113\% & 0.39 & \cellcolor{tablegreen!28}97\% \\
+ & 50\% & 0.44 & \cellcolor{tablegreen!47}166\% & 0.74 & 0.24 & \cellcolor{tablegreen!13}44\% & 0.64 & 0.33 & \cellcolor{tablegreen!19}65\% & 0.37 & \cellcolor{tablegreen!24}84\% \\
+ & 25\% & 0.36 & \cellcolor{tablegreen!33}117\% & 0.71 & 0.26 & \cellcolor{tablegreen!16}55\% & 0.69 & 0.38 & \cellcolor{tablegreen!25}89\% & 0.22 & \cellcolor{tablegreen!3}11\% \\
+ & 10\% & 0.34 & \cellcolor{tablegreen!30}106\% & 0.73 & 0.24 & \cellcolor{tablegreen!13}47\% & 0.63 & 0.27 & \cellcolor{tablegreen!11}37\% & 0.28 & \cellcolor{tablegreen!12}41\% \\
+ & 5\% & 0.24 & \cellcolor{tablegreen!12}42\% & 0.52 & 0.20 & \cellcolor{tablegreen!6}21\% & 0.58 & 0.18 & \cellcolor[HTML]{E8A0A0}-8\% & 0.26 & \cellcolor{tablegreen!8}30\% \\
+\cmidrule(l){1-12}
+\multirow{6}{*}{qwen} & 100\% & 0.54 & \cellcolor{tablegreen!64}\textcolor{white}{226\%} & 0.72 & 0.29 & \cellcolor{tablegreen!21}75\% & 0.64 & 0.38 & \cellcolor{tablegreen!26}89\% & 0.43 & \cellcolor{tablegreen!33}117\% \\
+ & 75\% & 0.51 & \cellcolor{tablegreen!58}205\% & 0.71 & 0.27 & \cellcolor{tablegreen!17}60\% & 0.62 & 0.40 & \cellcolor{tablegreen!29}102\% & 0.50 & \cellcolor{tablegreen!43}151\% \\
+ & 50\% & 0.54 & \cellcolor{tablegreen!64}\textcolor{white}{225\%} & 0.72 & 0.29 & \cellcolor{tablegreen!21}74\% & 0.63 & 0.41 & \cellcolor{tablegreen!30}106\% & 0.29 & \cellcolor{tablegreen!13}46\% \\
+ & 25\% & 0.43 & \cellcolor{tablegreen!45}158\% & 0.68 & 0.21 & \cellcolor{tablegreen!8}29\% & 0.57 & 0.27 & \cellcolor{tablegreen!10}35\% & 0.23 & \cellcolor{tablegreen!4}15\% \\
+ & 10\% & 0.36 & \cellcolor{tablegreen!33}116\% & 0.59 & 0.08 & \cellcolor[HTML]{E8A0A0}-54\% & 0.54 & 0.42 & \cellcolor{tablegreen!31}108\% & 0.35 & \cellcolor{tablegreen!21}75\% \\
+ & 5\% & 0.30 & \cellcolor{tablegreen!23}82\% & 0.62 & 0.31 & \cellcolor{tablegreen!25}88\% & 0.60 & 0.30 & \cellcolor{tablegreen!14}49\% & 0.27 & \cellcolor{tablegreen!10}36\% \\
+\cmidrule(l){1-12}
+\multirow{6}{*}{granite} & 100\% & 0.78 & \cellcolor{tablegreen!100}\textcolor{white}{369\%} & 0.91 & 0.34 & \cellcolor{tablegreen!31}107\% & 0.77 & 0.38 & \cellcolor{tablegreen!25}89\% & 0.40 & \cellcolor{tablegreen!29}100\% \\
+ & 75\% & 0.76 & \cellcolor{tablegreen!100}\textcolor{white}{357\%} & 0.89 & 0.38 & \cellcolor{tablegreen!37}129\% & 0.77 & 0.40 & \cellcolor{tablegreen!28}98\% & 0.40 & \cellcolor{tablegreen!28}99\% \\
+ & 50\% & 0.76 & \cellcolor{tablegreen!100}\textcolor{white}{354\%} & 0.88 & 0.37 & \cellcolor{tablegreen!36}125\% & 0.76 & 0.35 & \cellcolor{tablegreen!21}75\% & 0.34 & \cellcolor{tablegreen!20}69\% \\
+ & 25\% & 0.71 & \cellcolor{tablegreen!93}\textcolor{white}{325\%} & 0.87 & 0.30 & \cellcolor{tablegreen!23}82\% & 0.76 & 0.21 & \cellcolor{tablegreen!1}4\% & 0.27 & \cellcolor{tablegreen!9}33\% \\
+ & 10\% & 0.55 & \cellcolor{tablegreen!65}\textcolor{white}{229\%} & 0.80 & 0.40 & \cellcolor{tablegreen!40}142\% & 0.83 & 0.22 & \cellcolor{tablegreen!3}10\% & 0.24 & \cellcolor{tablegreen!5}19\% \\
+ & 5\% & 0.72 & \cellcolor{tablegreen!95}\textcolor{white}{332\%} & 0.89 & 0.38 & \cellcolor{tablegreen!37}129\% & 0.80 & 0.24 & \cellcolor{tablegreen!6}22\% & 0.20 & \cellcolor{tablegreen!0}0\% \\
+\midrule
+\multicolumn{12}{l}{\textbf{Random templates -- Cache -- PubMed}} \\
+\multirow{6}{*}{smol} & 100\% & 0.42 & \cellcolor{tablegreen!43}151\% & 0.81 & 0.31 & \cellcolor{tablegreen!25}86\% & 0.73 & 0.30 & \cellcolor{tablegreen!14}49\% & 0.39 & \cellcolor{tablegreen!27}94\% \\
+ & 75\% & 0.39 & \cellcolor{tablegreen!38}134\% & 0.80 & 0.32 & \cellcolor{tablegreen!26}92\% & 0.72 & 0.36 & \cellcolor{tablegreen!23}82\% & 0.27 & \cellcolor{tablegreen!10}33\% \\
+ & 50\% & 0.36 & \cellcolor{tablegreen!33}114\% & 0.75 & 0.33 & \cellcolor{tablegreen!28}98\% & 0.73 & 0.29 & \cellcolor{tablegreen!13}45\% & 0.33 & \cellcolor{tablegreen!19}65\% \\
+ & 25\% & 0.42 & \cellcolor{tablegreen!44}152\% & 0.75 & 0.26 & \cellcolor{tablegreen!17}58\% & 0.69 & 0.19 & \cellcolor[HTML]{E8A0A0}-4\% & 0.24 & \cellcolor{tablegreen!6}21\% \\
+ & 10\% & 0.30 & \cellcolor{tablegreen!23}80\% & 0.69 & 0.30 & \cellcolor{tablegreen!23}81\% & 0.77 & 0.14 & \cellcolor[HTML]{E8A0A0}-29\% & 0.15 & \cellcolor[HTML]{E8A0A0}-25\% \\
+ & 5\% & 0.29 & \cellcolor{tablegreen!21}74\% & 0.68 & 0.49 & \cellcolor{tablegreen!56}194\% & 0.83 & 0.11 & \cellcolor[HTML]{E8A0A0}-45\% & 0.21 & \cellcolor{tablegreen!1}4\% \\
+\cmidrule(l){1-12}
+\multirow{6}{*}{qwen} & 100\% & 0.52 & \cellcolor{tablegreen!60}211\% & 0.79 & 0.29 & \cellcolor{tablegreen!22}76\% & 0.70 & 0.28 & \cellcolor{tablegreen!11}40\% & 0.29 & \cellcolor{tablegreen!13}44\% \\
+ & 75\% & 0.54 & \cellcolor{tablegreen!65}\textcolor{white}{226\%} & 0.82 & 0.31 & \cellcolor{tablegreen!24}84\% & 0.69 & 0.28 & \cellcolor{tablegreen!12}42\% & 0.34 & \cellcolor{tablegreen!20}71\% \\
+ & 50\% & 0.56 & \cellcolor{tablegreen!67}\textcolor{white}{234\%} & 0.84 & 0.30 & \cellcolor{tablegreen!23}79\% & 0.72 & 0.30 & \cellcolor{tablegreen!14}51\% & 0.34 & \cellcolor{tablegreen!19}68\% \\
+ & 25\% & 0.49 & \cellcolor{tablegreen!56}196\% & 0.82 & 0.28 & \cellcolor{tablegreen!20}69\% & 0.70 & 0.19 & \cellcolor[HTML]{E8A0A0}-6\% & 0.25 & \cellcolor{tablegreen!7}24\% \\
+ & 10\% & 0.45 & \cellcolor{tablegreen!48}170\% & 0.73 & 0.32 & \cellcolor{tablegreen!26}90\% & 0.70 & 0.15 & \cellcolor[HTML]{E8A0A0}-26\% & 0.26 & \cellcolor{tablegreen!8}28\% \\
+ & 5\% & 0.50 & \cellcolor{tablegreen!57}198\% & 0.74 & 0.09 & \cellcolor[HTML]{E8A0A0}-46\% & 0.76 & 0.10 & \cellcolor[HTML]{E8A0A0}-50\% & 0.15 & \cellcolor[HTML]{E8A0A0}-25\% \\
+\cmidrule(l){1-12}
+\multirow{6}{*}{granite} & 100\% & 0.41 & \cellcolor{tablegreen!41}144\% & 0.73 & 0.23 & \cellcolor{tablegreen!11}40\% & 0.59 & 0.41 & \cellcolor{tablegreen!31}107\% & 0.41 & \cellcolor{tablegreen!30}106\% \\
+ & 75\% & 0.39 & \cellcolor{tablegreen!37}131\% & 0.72 & 0.24 & \cellcolor{tablegreen!12}43\% & 0.58 & 0.38 & \cellcolor{tablegreen!26}91\% & 0.41 & \cellcolor{tablegreen!31}107\% \\
+ & 50\% & 0.40 & \cellcolor{tablegreen!40}139\% & 0.70 & 0.22 & \cellcolor{tablegreen!9}32\% & 0.57 & 0.38 & \cellcolor{tablegreen!25}88\% & 0.36 & \cellcolor{tablegreen!23}81\% \\
+ & 25\% & 0.47 & \cellcolor{tablegreen!52}181\% & 0.73 & 0.28 & \cellcolor{tablegreen!19}67\% & 0.57 & 0.33 & \cellcolor{tablegreen!18}63\% & 0.35 & \cellcolor{tablegreen!21}73\% \\
+ & 10\% & 0.43 & \cellcolor{tablegreen!45}156\% & 0.67 & 0.24 & \cellcolor{tablegreen!13}45\% & 0.58 & 0.24 & \cellcolor{tablegreen!6}20\% & 0.29 & \cellcolor{tablegreen!12}43\% \\
+ & 5\% & 0.42 & \cellcolor{tablegreen!43}150\% & 0.66 & 0.22 & \cellcolor{tablegreen!10}33\% & 0.67 & 0.11 & \cellcolor[HTML]{E8A0A0}-43\% & 0.09 & \cellcolor[HTML]{E8A0A0}-53\% \\
+\end{longtable}
+\endgroup

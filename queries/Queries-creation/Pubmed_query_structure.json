@@ -1,0 +1,140 @@
+{
+    "very high frequency": {
+        "short": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        },
+        "medium": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        },
+        "long": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        }
+    },
+    "high frequency": {
+        "short": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        },
+        "medium": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        },
+        "long": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        }
+    },
+    "moderate frecuency": {
+        "short": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        },
+        "medium": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        },
+        "long": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        }
+    },
+    "low frequency": {
+        "short": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        },
+        "medium": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        },
+        "long": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        }
+    },
+    "very low frequency": {
+        "short": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        },
+        "medium": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        },
+        "long": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        }
+    },
+    "term not present": {
+        "short": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        },
+        "medium": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        },
+        "long": {
+            "Disease or condition": [],
+            "Treatment or intervention": [],
+            "Biological entity": [],
+            "Diagnostic method": [],
+            "Anatomy": []
+        }
+    }
+}

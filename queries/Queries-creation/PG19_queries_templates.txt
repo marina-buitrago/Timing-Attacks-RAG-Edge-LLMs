@@ -1,0 +1,207 @@
+PG19 QUERY TEMPLATES
+Target noun placeholder: TARGET
+
+============================================================
+CATEGORY: Person or social role
+============================================================
+
+SHORT
+1. Who is TARGET?
+2. What does TARGET look like?
+3. How does TARGET behave?
+4. Who is connected to TARGET?
+5. What does TARGET do?
+6. What motivates TARGET?
+7. What role does TARGET hold?
+8. How does TARGET change?
+9. What conflicts involve TARGET?
+10. Why is TARGET important?
+
+MEDIUM
+1. How is TARGET introduced and described in the passages where this figure appears?
+2. Which physical features, clothing, and expressions are most often associated with TARGET in the text?
+3. Which actions, habits, and speech patterns most clearly reveal the character of TARGET?
+4. Which characters are most closely connected to TARGET, and how are those relationships portrayed?
+5. Which important actions does TARGET perform, and what consequences follow from them in the narrative?
+6. Which desires, fears, duties, or beliefs most strongly motivate the actions of TARGET?
+7. What social position, occupation, authority, or responsibility does TARGET hold within the narrative?
+8. How does TARGET change in attitude, behavior, or circumstances throughout the retrieved passages?
+9. Which disputes, dangers, or opposing characters create the central conflicts involving TARGET in the story?
+10. Why is TARGET important to the plot, themes, or development of other characters?
+
+LONG
+1. According to the retrieved passages, how is TARGET introduced, identified, and described, which circumstances surround this figure's first appearance, and what information about background, social position, relationships, or reputation helps readers understand the character's place within the narrative as the story develops?
+2. According to the retrieved passages, which physical features, clothing, gestures, facial expressions, and other visible details are associated with TARGET, and how do those descriptions shape the reader's impression of this figure across different scenes or moments in the narrative?
+3. According to the retrieved passages, which actions, habits, choices, reactions, and patterns of speech most clearly reveal the personality of TARGET, and how consistently are those traits presented across different situations, relationships, and stages of the narrative as the story develops?
+4. According to the retrieved passages, which characters are most closely connected to TARGET, what familial, romantic, professional, social, or adversarial relationships link them, and how do those relationships influence the figure's decisions, behavior, circumstances, or development throughout the narrative over time?
+5. According to the retrieved passages, which important actions does TARGET perform, what immediate and later consequences follow from those actions, and how do they affect other characters, alter events, or redirect the development of the plot across the narrative as events unfold?
+6. According to the retrieved passages, which desires, fears, duties, loyalties, beliefs, ambitions, or private concerns most strongly motivate TARGET, and what evidence connects those motives with the figure's choices, speech, relationships, and responses to important events in the narrative over time?
+7. According to the retrieved passages, what social position, occupation, rank, authority, responsibility, or expected duty does TARGET hold, and how does that role influence the figure's treatment by others, available choices, obligations, privileges, or limitations within the represented society and historical setting?
+8. According to the retrieved passages, how does TARGET change in attitude, behavior, knowledge, relationships, status, or circumstances, which events produce those changes, and how do earlier and later portrayals of the figure differ across the course of the narrative as events unfold?
+9. According to the retrieved passages, which disputes, dangers, rivalries, misunderstandings, or opposing characters create the principal conflicts involving TARGET, and how does the figure respond to, intensify, avoid, or resolve those conflicts across different stages of the narrative and with what consequences?
+10. According to the retrieved passages, why is TARGET important to the plot, themes, atmosphere, or development of other characters, and which actions, relationships, decisions, or symbolic associations best explain the figure's wider narrative significance within the work as a whole?
+
+
+============================================================
+CATEGORY: Object or artifact
+============================================================
+
+SHORT
+1. What is TARGET?
+2. What does TARGET look like?
+3. Where does TARGET appear?
+4. How is TARGET used?
+5. Where does TARGET originate?
+6. Who interacts with TARGET?
+7. How does TARGET change?
+8. What does TARGET symbolize?
+9. Which events involve TARGET?
+10. Why is TARGET important?
+
+MEDIUM
+1. How is TARGET identified and described when it first appears in the retrieved passages?
+2. Which materials, shapes, colors, textures, and visible features characterize TARGET in the text?
+3. Where does TARGET appear, and how are its immediate surroundings described in the text?
+4. How is TARGET used, and what practical purpose does it serve in the narrative?
+5. What origin, source, history, or natural formation is attributed to TARGET in the passages?
+6. Which characters handle, observe, discuss, or otherwise interact directly with TARGET in the text?
+7. How is TARGET damaged, altered, repaired, moved, or transformed during the narrative over time?
+8. What emotional, cultural, social, or symbolic meanings are associated with TARGET in the passages?
+9. Which important actions, discoveries, conflicts, or turning points directly involve TARGET in the narrative?
+10. Why is TARGET important to the plot, characterization, atmosphere, or themes of the work?
+
+LONG
+1. According to the retrieved passages, how is TARGET introduced, identified, and described when it first appears, and what information about its origin, condition, ownership, surroundings, or prior history helps readers understand its immediate place within the narrative as events begin to unfold?
+2. According to the retrieved passages, which materials, shapes, colors, dimensions, textures, sounds, and other visible or sensory features characterize TARGET, and how consistently are those details presented when different narrators, characters, settings, or moments bring the object clearly into view?
+3. According to the retrieved passages, where does TARGET appear, which people, places, or surrounding features are associated with it, and how do changes in location, visibility, proximity, or context influence its interpretation and involvement as events unfold across the narrative?
+4. According to the retrieved passages, how is TARGET used, which practical purposes or needs does it serve, who knows how to employ it, and what consequences follow when the item is used correctly, misused, withheld, unavailable, or applied in unexpected circumstances?
+5. According to the retrieved passages, what origin, source, history, manufacture, growth, or natural formation is attributed to TARGET, who explains or discovers that background, and how does knowledge about its beginnings influence later interpretations, actions, relationships, or events within the narrative?
+6. According to the retrieved passages, which characters handle, observe, discuss, seek, avoid, protect, or otherwise interact with TARGET, and what do those interactions reveal about their intentions, emotions, knowledge, social position, relationships, or involvement in the developing events of the narrative?
+7. According to the retrieved passages, how is TARGET damaged, altered, repaired, moved, hidden, revealed, consumed, lost, or otherwise transformed, which events produce those changes, and how does its changing condition affect subsequent actions, interpretations, conflicts, or outcomes within the narrative?
+8. According to the retrieved passages, what emotional, cultural, religious, social, economic, or symbolic meanings are associated with TARGET, which characters assign those meanings, and how do such associations influence interpretation, memory, identity, relationships, choices, or broader themes across the work?
+9. According to the retrieved passages, which important actions, discoveries, journeys, exchanges, disputes, crimes, or turning points directly involve TARGET, and how does its presence, absence, movement, use, or discovery initiate, complicate, redirect, or resolve those events across the course of the narrative?
+10. According to the retrieved passages, why is TARGET important to the plot, characterization, setting, atmosphere, or themes, and which descriptions, uses, movements, exchanges, discoveries, or symbolic associations best explain the item's wider narrative significance within the work when considered as a whole?
+
+
+============================================================
+CATEGORY: Place or setting
+============================================================
+
+SHORT
+1. Where is TARGET?
+2. What does TARGET look like?
+3. What mood surrounds TARGET?
+4. Who occupies TARGET?
+5. What happens in TARGET?
+6. How is TARGET reached?
+7. What function does TARGET serve?
+8. How does TARGET change?
+9. What dangers surround TARGET?
+10. Why is TARGET important?
+
+MEDIUM
+1. Where is TARGET located, and how is its position described in the retrieved passages?
+2. Which physical features, boundaries, buildings, rooms, or landscapes characterize TARGET in the text?
+3. Which sights, sounds, weather, lighting, and emotions establish the distinctive atmosphere of TARGET?
+4. Which people, groups, or creatures inhabit, visit, work, or gather regularly in TARGET?
+5. Which important actions, meetings, discoveries, or conflicts occur within TARGET during the narrative?
+6. How do characters enter, leave, approach, or travel through TARGET in the text?
+7. What domestic, social, political, religious, economic, or practical function does TARGET serve within society?
+8. How does TARGET change physically, socially, or symbolically across the retrieved passages over time?
+9. Which dangers, restrictions, secrets, or conflicts are associated with TARGET in the narrative?
+10. Why is TARGET important to the plot, atmosphere, characterization, or themes of the work?
+
+LONG
+1. According to the retrieved passages, where is TARGET located, which roads, landmarks, regions, buildings, rooms, or natural features define its position, and how does its location shape accessibility, movement, isolation, communication, or relationships with other settings across the narrative over time?
+2. According to the retrieved passages, which buildings, rooms, boundaries, furnishings, landscapes, paths, and other physical features characterize TARGET, and how are those elements arranged spatially to shape movement, visibility, privacy, social interaction, or the reader's understanding of the setting throughout the work?
+3. According to the retrieved passages, which sights, sounds, smells, weather conditions, lighting, colors, textures, and emotional responses establish the atmosphere of TARGET, and how does that atmosphere vary across different times, events, characters, or stages of the narrative as events unfold?
+4. According to the retrieved passages, which people, families, social groups, workers, visitors, strangers, or creatures inhabit or gather in TARGET, and what do their activities, relationships, status differences, routines, or conflicts reveal about life within this setting during the narrative?
+5. According to the retrieved passages, which important meetings, conversations, discoveries, celebrations, departures, crimes, confrontations, or turning points occur in TARGET, and how does the setting enable, constrain, intensify, conceal, or otherwise influence those events as the narrative develops over time?
+6. According to the retrieved passages, how do characters enter, leave, approach, cross, explore, or travel through TARGET, which barriers or routes shape their movement, and how do access, distance, visibility, weather, or social restrictions affect their experiences there throughout the narrative?
+7. According to the retrieved passages, what domestic, social, political, religious, economic, military, or practical functions does TARGET serve, who controls or benefits from those functions, and how do they shape behavior, hierarchy, community life, obligations, or conflict within the setting?
+8. According to the retrieved passages, how does TARGET change physically, socially, politically, emotionally, or symbolically over time, which events produce those changes, and how do earlier and later descriptions of the setting differ across the course of the narrative as events unfold?
+9. According to the retrieved passages, which dangers, restrictions, secrets, crimes, supernatural threats, social tensions, or conflicts are associated with TARGET, and how do characters recognize, experience, avoid, intensify, or overcome those hazards during different events in the narrative and with what consequences?
+10. According to the retrieved passages, why is TARGET important to the plot, atmosphere, characterization, social world, or themes, and which events, descriptions, relationships, contrasts, memories, or symbolic associations best explain the setting's wider significance within the work as a whole?
+
+
+============================================================
+CATEGORY: Institution or collective
+============================================================
+
+SHORT
+1. What is TARGET?
+2. Who belongs to TARGET?
+3. How is TARGET organized?
+4. What does TARGET do?
+5. What norms shape TARGET?
+6. What influence does TARGET have?
+7. Who opposes TARGET?
+8. What conflicts divide TARGET?
+9. How does TARGET change?
+10. Why is TARGET important?
+
+MEDIUM
+1. How is TARGET identified and described when it first appears in the retrieved passages?
+2. Which people belong to TARGET, and what qualities or positions distinguish its members?
+3. How are leadership, rank, authority, duties, and responsibilities organized within TARGET across the narrative?
+4. What purposes, duties, responsibilities, or activities does TARGET pursue throughout the narrative, and why?
+5. Which laws, rules, traditions, customs, or expectations shape behavior among members of TARGET?
+6. What resources, authority, influence, or social power does TARGET exercise over others within society?
+7. Which individuals or rival groups support, resist, fear, or oppose TARGET in the narrative?
+8. Which disagreements, rivalries, loyalties, or divisions create internal conflict within TARGET among its members?
+9. How does TARGET change in membership, leadership, purpose, power, or reputation over time?
+10. Why is TARGET important to the plot, social order, conflicts, or themes of the work?
+
+LONG
+1. According to the retrieved passages, how is TARGET introduced, identified, and described, what circumstances explain its origin or existence, and which characteristics, reputation, symbols, territory, customs, or public perceptions distinguish it from other groups or institutions within the narrative as events unfold?
+2. According to the retrieved passages, which named or unnamed people belong to TARGET, how do they enter, leave, or participate in it, and what roles, qualities, loyalties, backgrounds, or status differences distinguish particular members within the wider group throughout the narrative?
+3. According to the retrieved passages, how is TARGET organized, how are authority, rank, offices, responsibilities, and decisions distributed, and what formal or informal relationships determine who commands, advises, represents, follows, or challenges others within the group as circumstances change over time?
+4. According to the retrieved passages, what purposes, duties, interests, beliefs, services, or activities does TARGET pursue, which methods does it use, and how do its collective actions affect individual characters, surrounding communities, institutions, conflicts, or developments in the narrative over time?
+5. According to the retrieved passages, which laws, rules, customs, traditions, rituals, obligations, or expectations shape behavior within TARGET, how are those norms communicated and enforced, and what consequences follow when members obey, reinterpret, resist, or violate them during the narrative?
+6. According to the retrieved passages, what legal, political, economic, military, religious, social, or cultural influence does TARGET possess, which resources or relationships support it, and how does the group use that influence to reward, constrain, protect, persuade, or punish others within society?
+7. According to the retrieved passages, which individuals, communities, institutions, or rival groups support, depend upon, fear, resist, or oppose TARGET, and how do alliances, negotiations, competition, prejudice, violence, or mutual obligations shape those external relationships across the narrative over time?
+8. According to the retrieved passages, which disagreements, rivalries, competing interests, betrayals, status divisions, or conflicting loyalties create tension within TARGET, and how do its members manage, conceal, intensify, or resolve those internal conflicts and their consequences throughout the developing narrative?
+9. According to the retrieved passages, how does TARGET change in membership, leadership, organization, purpose, influence, territory, reputation, or unity, which events produce those changes, and how do earlier and later portrayals of the group differ across the narrative as events unfold?
+10. According to the retrieved passages, why is TARGET important to the plot, social order, historical setting, characterization, conflicts, or themes, and which actions, relationships, rules, power structures, or symbolic associations best explain its wider narrative significance within the work as a whole?
+
+
+============================================================
+CATEGORY: Abstract concept
+============================================================
+
+SHORT
+1. What does TARGET mean?
+2. How is TARGET expressed?
+3. Who embodies TARGET?
+4. What causes TARGET?
+5. How does TARGET guide choices?
+6. What conflicts involve TARGET?
+7. How does TARGET change?
+8. What consequences follow TARGET?
+9. What symbolizes TARGET?
+10. Why is TARGET important?
+
+MEDIUM
+1. How is TARGET defined or understood by different characters in the retrieved passages?
+2. Through which actions, words, images, or situations is TARGET most clearly expressed in the text?
+3. Which characters most strongly embody, pursue, reject, or struggle with TARGET in the narrative?
+4. Which events, relationships, memories, or circumstances produce or intensify TARGET in the text?
+5. How does TARGET influence the choices, judgments, and behavior of important characters throughout the narrative?
+6. Which tensions, disagreements, or moral conflicts arise from different understandings of TARGET among characters?
+7. How does the meaning or importance of TARGET change across the narrative over TARGET?
+8. Which beneficial or harmful consequences follow when characters act according to TARGET in the narrative?
+9. Which objects, places, images, actions, or recurring motifs symbolize TARGET in the text?
+10. Why is TARGET important to the central themes and interpretation of the work?
+
+LONG
+1. According to the retrieved passages, how is TARGET defined, understood, discussed, or interpreted by different characters, and which experiences, values, relationships, social positions, or historical circumstances explain why their meanings agree, differ, or conflict across the narrative as events unfold?
+2. According to the retrieved passages, through which actions, words, emotions, images, situations, relationships, or recurring patterns is TARGET most clearly expressed, and how does its presentation vary across speakers, characters, settings, events, or stages of the narrative as events unfold?
+3. According to the retrieved passages, which characters most strongly embody, pursue, defend, reject, fear, or struggle with TARGET, and what actions, choices, relationships, speeches, or consequences provide the clearest evidence of their connection with this idea throughout the developing narrative?
+4. According to the retrieved passages, which events, relationships, memories, beliefs, social pressures, losses, desires, or circumstances produce or intensify TARGET, and how do different characters explain, experience, conceal, resist, or respond to its emergence within the narrative over TARGET and across changing circumstances?
+5. According to the retrieved passages, how does TARGET influence the choices, judgments, loyalties, relationships, and behavior of important characters, and which events demonstrate whether acting according to this idea helps, harms, constrains, transforms, or misleads them as the narrative develops over TARGET?
+6. According to the retrieved passages, which personal, social, political, religious, or moral tensions arise from different understandings of TARGET, and how do characters debate, defend, compromise, suppress, or act upon those competing interpretations during important conflicts in the narrative and with what consequences?
+7. According to the retrieved passages, how does the meaning, value, visibility, or importance of TARGET change across the narrative, which events or relationships produce those changes, and how do earlier and later treatments of the idea differ within the work?
+8. According to the retrieved passages, which beneficial or harmful consequences follow when characters pursue, reject, misunderstand, defend, or act according to TARGET, and how do those outcomes affect their relationships, status, identity, decisions, wellbeing, or eventual fate within the narrative?
+9. According to the retrieved passages, which objects, places, natural features, gestures, images, colors, sounds, actions, or recurring motifs symbolize TARGET, and how do their contexts, repetitions, contrasts, and associations develop or complicate the idea's meaning across the work as events unfold?
+10. According to the retrieved passages, why is TARGET important to the central themes, moral questions, character development, social criticism, atmosphere, or interpretation of the work, and which events, contrasts, symbols, or relationships best demonstrate its wider significance within the narrative?
+

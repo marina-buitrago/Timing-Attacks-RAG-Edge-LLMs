@@ -1,0 +1,59 @@
+PG19 SELECTED TARGET TERMS
+==========================
+
+Two selected target terms are used for each semantic category and frequency stratum.
+The same target terms are reused across the short, medium, and long query-length conditions.
+
+======================================================================
+FREQUENCY: Very high frequency
+======================================================================
+Person or social role: woman, father
+Object or artifact: door, book
+Place or setting: house, room
+Institution or collective: church, state
+Abstract concept: time, death
+
+======================================================================
+FREQUENCY: High frequency
+======================================================================
+Person or social role: christ, president
+Object or artifact: dress, dollar
+Place or setting: village, america
+Institution or collective: council, crowd
+Abstract concept: service, belief
+
+======================================================================
+FREQUENCY: Moderate frequency
+======================================================================
+Person or social role: baker, louisa
+Object or artifact: steamer, soup
+Place or setting: michigan, southampton
+Institution or collective: germans, kindred
+Abstract concept: mistake, correction
+
+======================================================================
+FREQUENCY: Low frequency
+======================================================================
+Person or social role: amentet, maixent
+Object or artifact: cananga, amoumum
+Place or setting: quarnero, sintra
+Institution or collective: sangha, minorcan
+Abstract concept: eversion, icteria
+
+======================================================================
+FREQUENCY: Very low frequency
+======================================================================
+Person or social role: mavrogordatos, wriedt
+Object or artifact: matraque, copeaux
+Place or setting: cañaribamba, scarbantia
+Institution or collective: lactobici, semigaetulians
+Abstract concept: kerntheilung, forsthoheit
+
+======================================================================
+FREQUENCY: Term not present
+======================================================================
+Person or social role: YouTuber, TikToker
+Object or artifact: iPhone, AirPods
+Place or setting: Disneyland, International Space Station
+Institution or collective: OpenAI, Black pill
+Abstract concept: cryptocurrency, blockchain

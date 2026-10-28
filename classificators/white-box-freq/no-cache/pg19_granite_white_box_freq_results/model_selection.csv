@@ -1,0 +1,4 @@
+model,cv_accuracy,cv_balanced_accuracy,cv_macro_f1,selected
+balanced_entropy_random_forest,0.7270833333333333,0.7270833333333333,0.7261920224484032,True
+supplied_random_forest,0.7125,0.7125,0.711573049944083,False
+extra_trees,0.6472222222222223,0.6472222222222221,0.6472339477581562,False

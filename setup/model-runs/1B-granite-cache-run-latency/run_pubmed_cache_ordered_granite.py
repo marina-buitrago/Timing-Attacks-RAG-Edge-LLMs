@@ -1,0 +1,2101 @@
+#!/usr/bin/env python3
+"""
+PubMed RAG timing experiment.
+
+This script runs the PubMed experiment with per-query RAG,
+retrieval, and LLM component latencies. Queries are grouped by semantic
+frequency, query length, and biomedical category.
+
+It runs two separate benchmarks:
+
+1. ChromaDB/HNSW retrieval-only latency
+   - Query embeddings are computed before timing starts.
+   - Only collection.query(...) is timed.
+   - Outputs are saved under: chroma_hnsw_retrieval_only/
+
+2. Full RAG end-to-end latency with component timing
+   - Raw query text -> embedding -> retrieval -> prompt construction -> LLM generation.
+   - The end-to-end RAG latency is timed.
+   - The retrieval component and LLM component are also timed separately.
+   - Outputs are saved under: full_rag_end_to_end/
+
+The query order is preserved exactly as loaded for every iteration.
+
+Optional Redis semantic LLM cache (--semantic-cache):
+   - Chroma remains the document store; retrieval still runs on every request.
+   - LangChain caches the FULL FORMATTED PROMPT passed to llm.invoke().
+   - RedisSemanticCache is attached to this LLM instance, not set globally.
+   - Independent cache namespaces are used for each k and configuration.
+   - Model warm-up bypasses the cache; by default each k starts empty.
+   - Cache lookup/write and uncached generation-path timings are recorded.
+   - Cache errors abort the run; they are not silently treated as misses.
+   - Existing CSVs/plots remain; new unfiltered summaries separate cache states.
+
+IMPORTANT: all-MiniLM-L6-v2 truncates long inputs at 256 word pieces by default.
+With the original context-first prompt, the question may be outside that window.
+This script deliberately does NOT change the original prompt or cache only the
+question. Audit answer correctness and consider --cache-embedding-model before
+interpreting semantic-cache hit rates. A small distance is not proof that an
+answer is valid for the current question/context.
+
+Instrumentation is for this script's sequential invoke() calls, not concurrent
+batch/async/streaming calls. Redis must support Search/vector search.
+"""
+
+from __future__ import annotations
+
+import argparse
+import gc
+import hashlib
+import importlib.metadata
+import json
+import os
+import random
+import re
+import time
+import uuid
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+
+import chromadb
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import torch
+from scipy import stats
+from sentence_transformers import SentenceTransformer
+from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig, pipeline
+
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings, HuggingFacePipeline
+from langchain_core.prompts import PromptTemplate
+from langchain_core.caches import BaseCache
+from langchain_core.outputs import Generation, LLMResult
+from pydantic import PrivateAttr
+
+
+DEFAULT_K_VALUES = [5, 20, 50, 100]
+DEFAULT_RETRIEVAL_ITERATIONS = 30
+DEFAULT_RAG_ITERATIONS = 2
+DEFAULT_SEED = 42
+
+DEFAULT_QUERY_FILE = "queries-3-pubmed.json"
+DEFAULT_DATABASE_DIR = "workspace/pubmed_central"
+DEFAULT_COLLECTION_NAME = "pubmed_central"
+DEFAULT_OUTPUT_DIR = "experiment-cache-granite-pubmed/results_pubmed_cache_granite"
+
+DEFAULT_EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+DEFAULT_LLM_MODEL = "ibm-granite/granite-3.0-1b-a400m-instruct"
+
+DEFAULT_FREQUENCY_ORDER = [
+    "very high frequency",
+    "high frequency",
+    "moderate frequency",
+    "low frequency",
+    "very low frequency",
+    "term not present",
+]
+DEFAULT_LENGTH_ORDER = ["short", "medium", "long"]
+DEFAULT_CATEGORY_ORDER = [
+    "Disease or condition",
+    "Treatment or intervention",
+    "Biological entity",
+    "Diagnostic method",
+    "Anatomy",
+]
+
+FREQUENCY_LABELS = {
+    "very high frequency": "Very high",
+    "high frequency": "High",
+    "moderate frecuency": "Moderate",
+    "moderate frequency": "Moderate",
+    "low frequency": "Low",
+    "very low frequency": "Very low",
+    "term not present": "Term not present",
+}
+
+LENGTH_LABELS = {
+    "short": "Short",
+    "medium": "Medium",
+    "long": "Long",
+    "corta": "Short",
+    "media": "Medium",
+    "larga": "Long",
+}
+
+PROMPT_TEMPLATE = """You are an analytical assistant. Answer the question using only the retrieved context.
+
+If there is no relevant context, explain that there is not enough relevant information in the retrieved context to answer this question.
+If the context is limited, briefly present the related information and state what cannot be answered.
+If it is sufficient, give a clear evidence-based answer.
+If it is abundant, give a detailed answer without repetition.
+Do not use external knowledge or invent missing information.
+
+Context:
+{context}
+
+Question:
+{input}
+
+Answer:"""
+
+
+@dataclass(frozen=True)
+class QueryItem:
+    query_id: str
+    frequency: str
+    length: str
+    category: str
+    text: str
+
+
+@dataclass(frozen=True)
+class SemanticCacheConfig:
+    """Redis settings; no Redis connection is made when enabled is False."""
+
+    enabled: bool = False
+    redis_url: str = "redis://127.0.0.1:6379/0"
+    base_name: str = "pubmed_llm_semantic"
+    session_id: str = ""
+    distance_threshold: float = 0.1
+    ttl: Optional[int] = None
+    reset_policy: str = "per-k"
+    embedding_model_name: Optional[str] = None
+    embedding_device: Optional[str] = None
+    corpus_version: str = "unspecified"
+
+
+class InstrumentedSemanticCache(BaseCache):
+    """Observe LangChain's actual cache calls without doing a second lookup.
+
+    The backend is a real langchain_redis.RedisSemanticCache. Per-request
+    telemetry is mutable and intentionally only supports sequential requests.
+    Stored Generation metadata records the original full-prompt hash, allowing
+    exact-prompt reuse to be distinguished from non-identical-prompt reuse.
+    """
+
+    SOURCE_HASH_KEY = "benchmark_cache_source_prompt_sha256"
+
+    def __init__(self, backend: BaseCache, namespace: str) -> None:
+        self.backend = backend
+        self.namespace = namespace
+        self.reset_metrics()
+
+    def reset_metrics(self) -> None:
+        self.hit: Optional[bool] = None
+        self.match_type = "not_looked_up"
+        self.lookup_latency_ms = 0.0
+        self.update_latency_ms = 0.0
+        self.lookup_calls = 0
+        self.update_calls = 0
+        self.source_prompt_sha256 = ""
+
+    def lookup(self, prompt: str, llm_string: str) -> Optional[List[Generation]]:
+        start = time.perf_counter()
+        self.lookup_calls += 1
+        try:
+            result = self.backend.lookup(prompt, llm_string)
+            # Empty cache results must be misses, not an empty generation list.
+            if not result:
+                self.hit = False
+                self.match_type = "miss"
+                return None
+            result = list(result)
+            self.hit = True
+            info = result[0].generation_info or {}
+            self.source_prompt_sha256 = str(info.get(self.SOURCE_HASH_KEY, ""))
+            if self.source_prompt_sha256:
+                current_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+                self.match_type = (
+                    "exact_prompt" if current_hash == self.source_prompt_sha256
+                    else "similar_prompt"
+                )
+            else:
+                self.match_type = "unknown_source"
+            return result
+        finally:
+            # Includes prompt encoding, Redis search, deserialization and this
+            # wrapper's small bookkeeping cost. It is NOT just network time.
+            self.lookup_latency_ms += (time.perf_counter() - start) * 1000.0
+
+    def update(self, prompt: str, llm_string: str, return_val: Sequence[Generation]) -> None:
+        start = time.perf_counter()
+        self.update_calls += 1
+        try:
+            source_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+            stored_values = []
+            for generation in return_val:
+                info = dict(generation.generation_info or {})
+                info[self.SOURCE_HASH_KEY] = source_hash
+                # Preserve the Generation subtype and do not mutate the LLM's
+                # original return value.
+                stored_values.append(generation.model_copy(update={"generation_info": info}))
+            self.backend.update(prompt, llm_string, stored_values)
+        finally:
+            self.update_latency_ms += (time.perf_counter() - start) * 1000.0
+
+    def clear(self, **kwargs: Any) -> None:
+        # Only the backend's own cache index/entries, never FLUSHDB/FLUSHALL.
+        self.backend.clear(**kwargs)
+        self.reset_metrics()
+
+    def snapshot(self) -> Dict[str, Any]:
+        return {
+            "cache_enabled": True,
+            "cache_namespace": self.namespace,
+            "cache_hit": self.hit,
+            "cache_match_type": self.match_type,
+            "cache_lookup_latency_ms": self.lookup_latency_ms,
+            "cache_update_latency_ms": self.update_latency_ms,
+            "cache_lookup_calls": self.lookup_calls,
+            "cache_update_calls": self.update_calls,
+            "cache_source_prompt_sha256": self.source_prompt_sha256,
+        }
+
+
+def disabled_cache_metrics() -> Dict[str, Any]:
+    return {
+        "cache_enabled": False,
+        "cache_namespace": "",
+        "cache_hit": None,  # Disabled is neither a hit nor a miss.
+        "cache_match_type": "disabled",
+        "cache_lookup_latency_ms": 0.0,
+        "cache_update_latency_ms": 0.0,
+        "cache_lookup_calls": 0,
+        "cache_update_calls": 0,
+        "cache_source_prompt_sha256": "",
+    }
+
+
+def connect_cache_redis(config: SemanticCacheConfig) -> Any:
+    """Fail early on missing dependencies, unavailable Redis or missing Search."""
+    try:
+        from redis import Redis
+        from langchain_redis import RedisSemanticCache  # noqa: F401
+    except ImportError as exc:
+        raise RuntimeError(
+            "Semantic caching requires compatible langchain-redis and redis packages. "
+            "Install them in the experiment environment and run 'python -m pip check'."
+        ) from exc
+    client = Redis.from_url(
+        config.redis_url,
+        socket_connect_timeout=5,
+        socket_timeout=30,
+        decode_responses=False,
+    )
+    try:
+        client.ping()
+        client.execute_command("FT._LIST")
+    except Exception:
+        client.close()
+        # Do not print a Redis URL that might contain a password.
+        raise RuntimeError(
+            "Cannot use Redis semantic caching. Check REDIS_URL, authentication, "
+            "connectivity, and Search/vector-search support (for example Redis 8). "
+            "No uncached fallback was performed."
+        ) from None
+    return client
+
+
+def build_cache_namespace(
+    config: SemanticCacheConfig,
+    k: int,
+    database_dir: Path,
+    collection_name: str,
+    embedding_model_name: str,
+    llm_model_name: str,
+    max_new_tokens: int,
+) -> str:
+    """Separate runs, corpora, model/prompt settings and k exactly, not semantically.
+
+    The fingerprint is configuration-based; it is NOT a content hash of Chroma.
+    Change corpus_version when deliberately reusing a session after index edits.
+    """
+    identity = {
+        "schema": "pubmed_semantic_llm_cache_v1",
+        "database": str(database_dir.resolve()),
+        "collection": collection_name,
+        "corpus_version": config.corpus_version,
+        "retrieval_embedding_model": embedding_model_name,
+        "cache_embedding_model": config.embedding_model_name or embedding_model_name,
+        "cache_embedding_device": config.embedding_device,
+        "llm_model": llm_model_name,
+        "generation_policy": "smollm2_greedy_v1",
+        "max_new_tokens": max_new_tokens,
+        "min_new_tokens": 1,
+        "do_sample": False,
+        "return_full_text": False,
+        "truncation": True,
+        "prompt_template": PROMPT_TEMPLATE,
+        "distance_threshold": config.distance_threshold,
+        "ttl": config.ttl,
+        "k": k,
+    }
+    digest = hashlib.sha256(
+        json.dumps(identity, sort_keys=True).encode("utf-8")
+    ).hexdigest()[:20]
+    return f"{safe_name(config.base_name)}_{safe_name(config.session_id)}_{digest}_k{k}"
+
+
+def make_semantic_cache(
+    config: SemanticCacheConfig,
+    embeddings: Any,
+    redis_client: Any,
+    namespace: str,
+) -> InstrumentedSemanticCache:
+    from langchain_redis import RedisSemanticCache
+
+    backend = RedisSemanticCache(
+        embeddings=embeddings,
+        redis_client=redis_client,
+        distance_threshold=config.distance_threshold,
+        ttl=config.ttl,
+        name=namespace,
+        prefix=namespace,
+    )
+    return InstrumentedSemanticCache(backend, namespace)
+
+
+def parse_csv_values(value: str, cast=str) -> List[Any]:
+    if value is None:
+        return []
+    return [cast(part.strip()) for part in value.split(",") if part.strip()]
+
+
+def resolve_path(project_root: Path, maybe_relative: str) -> Path:
+    path = Path(maybe_relative).expanduser()
+    if path.is_absolute():
+        return path
+    return project_root / path
+
+
+def safe_name(value: str) -> str:
+    value = str(value).strip().lower()
+    value = re.sub(r"[^a-z0-9._-]+", "_", value)
+    return value.strip("_") or "value"
+
+
+def label_frequency(key: str) -> str:
+    return FREQUENCY_LABELS.get(key, key.replace("_", " ").title())
+
+
+def label_length(key: str) -> str:
+    return LENGTH_LABELS.get(key, key.replace("_", " ").title())
+
+
+def label_category(key: str) -> str:
+    return str(key).strip().capitalize()
+
+
+def ordered_keys(available: Iterable[str], preferred_order: Sequence[str]) -> List[str]:
+    available_set = set(available)
+    ordered = [key for key in preferred_order if key in available_set]
+    ordered.extend(sorted(key for key in available_set if key not in ordered))
+    return ordered
+
+
+def load_query_dataset(
+    query_file: Path,
+    frequency_keys_arg: str,
+    length_keys_arg: str,
+    category_keys_arg: str,
+    max_queries_per_cell: int,
+    seed: Optional[int],
+) -> Tuple[List[QueryItem], List[str], List[str], List[str], Dict[str, Any]]:
+    with query_file.open("r", encoding="utf-8") as handle:
+        data = json.load(handle)
+
+    if not isinstance(data, dict):
+        raise ValueError("The query dataset must be a JSON object at the top level.")
+
+    if frequency_keys_arg.lower() == "auto":
+        frequency_keys = ordered_keys(
+            [key for key, value in data.items() if isinstance(value, dict)],
+            DEFAULT_FREQUENCY_ORDER,
+        )
+    else:
+        frequency_keys = parse_csv_values(frequency_keys_arg, str)
+
+    available_lengths = set()
+    for frequency in frequency_keys:
+        if frequency in data and isinstance(data[frequency], dict):
+            available_lengths.update(data[frequency].keys())
+
+    if length_keys_arg.lower() == "auto":
+        length_keys = ordered_keys(available_lengths, DEFAULT_LENGTH_ORDER)
+    else:
+        length_keys = parse_csv_values(length_keys_arg, str)
+
+    available_categories = set()
+    for frequency in frequency_keys:
+        for length in length_keys:
+            cell = data.get(frequency, {}).get(length, {})
+            if isinstance(cell, dict):
+                available_categories.update(cell.keys())
+
+    if category_keys_arg.lower() == "auto":
+        category_keys = ordered_keys(available_categories, DEFAULT_CATEGORY_ORDER)
+    else:
+        category_keys = parse_csv_values(category_keys_arg, str)
+
+    if not category_keys:
+        raise ValueError(
+            "No query categories were found. Expected each frequency/length cell "
+            "to contain category objects."
+        )
+
+    rng = random.Random(seed)
+    items: List[QueryItem] = []
+    counts: Dict[str, Any] = {}
+
+    for frequency in frequency_keys:
+        if frequency not in data:
+            raise KeyError(f"Frequency key not found in query dataset: {frequency}")
+        if not isinstance(data[frequency], dict):
+            raise ValueError(f"Frequency key {frequency} must contain an object of length groups.")
+
+        counts[frequency] = {}
+        for length in length_keys:
+            if length not in data[frequency]:
+                raise KeyError(f"Length key not found for {frequency}: {length}")
+            category_groups = data[frequency][length]
+            if not isinstance(category_groups, dict):
+                raise ValueError(
+                    f"Queries for {frequency}/{length} must be an object grouped by category."
+                )
+
+            counts[frequency][length] = {}
+            for category in category_keys:
+                if category not in category_groups:
+                    raise KeyError(f"Category key not found for {frequency}/{length}: {category}")
+                queries = category_groups[category]
+                if not isinstance(queries, list):
+                    raise ValueError(
+                        f"Queries for {frequency}/{length}/{category} must be a list."
+                    )
+
+                selected_queries = list(queries)
+                if max_queries_per_cell and max_queries_per_cell > 0:
+                    if len(selected_queries) > max_queries_per_cell:
+                        selected_queries = rng.sample(selected_queries, max_queries_per_cell)
+
+                counts[frequency][length][category] = len(selected_queries)
+                for index, text in enumerate(selected_queries):
+                    if not isinstance(text, str) or not text.strip():
+                        continue
+                    query_id = (
+                        f"{safe_name(frequency)}__{safe_name(length)}__"
+                        f"{safe_name(category)}__{index:04d}"
+                    )
+                    items.append(
+                        QueryItem(
+                            query_id=query_id,
+                            frequency=frequency,
+                            length=length,
+                            category=category,
+                            text=text,
+                        )
+                    )
+
+    if not items:
+        raise ValueError("No valid queries were loaded from the dataset.")
+
+    return items, frequency_keys, length_keys, category_keys, counts
+
+
+def resolve_chroma_collection(client: chromadb.PersistentClient, preferred_name: str):
+    try:
+        return client.get_collection(name=preferred_name), preferred_name
+    except Exception as original_error:
+        collections = client.list_collections()
+        names = []
+        for collection in collections:
+            if hasattr(collection, "name"):
+                names.append(collection.name)
+            else:
+                names.append(str(collection))
+
+        if len(names) == 1:
+            fallback_name = names[0]
+            print(
+                f"[!] Collection '{preferred_name}' was not found. "
+                f"Using the only available collection instead: '{fallback_name}'"
+            )
+            return client.get_collection(name=fallback_name), fallback_name
+
+        raise RuntimeError(
+            f"Could not load Chroma collection '{preferred_name}'. "
+            f"Available collections: {names}"
+        ) from original_error
+
+
+def initialize_times(frequency_keys: Sequence[str], length_keys: Sequence[str]) -> Dict[str, Dict[str, List[float]]]:
+    return {frequency: {length: [] for length in length_keys} for frequency in frequency_keys}
+
+
+def compute_results(
+    times_by_config: Dict[str, Dict[str, List[float]]],
+    frequency_keys: Sequence[str],
+    length_keys: Sequence[str],
+) -> Dict[str, Dict[str, Dict[str, Any]]]:
+    results: Dict[str, Dict[str, Dict[str, Any]]] = {}
+
+    for frequency in frequency_keys:
+        results[frequency] = {}
+        for length in length_keys:
+            raw_times = list(times_by_config[frequency][length])
+            if raw_times:
+                outlier_limit = float(np.percentile(raw_times, 99))
+                clean_times = [value for value in raw_times if value <= outlier_limit]
+            else:
+                outlier_limit = float("nan")
+                clean_times = []
+
+            if clean_times:
+                mean_value = float(np.mean(clean_times))
+                median_value = float(np.median(clean_times))
+                std_value = float(np.std(clean_times))
+            else:
+                mean_value = float("nan")
+                median_value = float("nan")
+                std_value = float("nan")
+
+            results[frequency][length] = {
+                "raw_times": raw_times,
+                "clean_times": clean_times,
+                "tiempos_sucios": raw_times,
+                "tiempos_limpios": clean_times,
+                "mean": mean_value,
+                "median": median_value,
+                "std": std_value,
+                "media": mean_value,
+                "mediana": median_value,
+                "outlier_limit_p99": outlier_limit,
+                "outliers": len(raw_times) - len(clean_times),
+                "sample_size": len(clean_times),
+            }
+
+    return results
+
+
+def save_summary_csv(
+    results_by_k: Dict[int, Dict[str, Dict[str, Dict[str, Any]]]],
+    output_dir: Path,
+    frequency_keys: Sequence[str],
+    length_keys: Sequence[str],
+    benchmark_name: str,
+    latency_column_label: str = "latency_ms",
+) -> pd.DataFrame:
+    rows = []
+    for k, results in results_by_k.items():
+        for frequency in frequency_keys:
+            for length in length_keys:
+                result = results[frequency][length]
+                rows.append(
+                    {
+                        "benchmark": benchmark_name,
+                        "k": k,
+                        "frequency_key": frequency,
+                        "frequency": label_frequency(frequency),
+                        "length_key": length,
+                        "length": label_length(length),
+                        "latency_metric": latency_column_label,
+                        "mean_latency_ms": result["mean"],
+                        "median_latency_ms": result["median"],
+                        "std_latency_ms": result["std"],
+                        "filtered_outliers": result["outliers"],
+                        "outlier_limit_p99_ms": result["outlier_limit_p99"],
+                        "sample_size": result["sample_size"],
+                    }
+                )
+
+    df = pd.DataFrame(rows)
+    csv_path = output_dir / "summary_results.csv"
+    df.to_csv(csv_path, index=False)
+    print(f"[+] Summary CSV saved: {csv_path}")
+    print(df.to_string(index=False))
+    return df
+
+
+def save_raw_csv(raw_rows: List[Dict[str, Any]], output_dir: Path, filename: str = "raw_latencies.csv") -> None:
+    raw_path = output_dir / filename
+    pd.DataFrame(raw_rows).to_csv(raw_path, index=False)
+    print(f"[+] Raw latency CSV saved: {raw_path}")
+
+
+def save_ttest_csv(
+    results_by_k: Dict[int, Dict[str, Dict[str, Dict[str, Any]]]],
+    output_dir: Path,
+    frequency_keys: Sequence[str],
+    length_keys: Sequence[str],
+    benchmark_name: str,
+) -> None:
+    high_key = "high_frequency" if "high_frequency" in frequency_keys else ("alta_frecuencia" if "alta_frecuencia" in frequency_keys else frequency_keys[0])
+    low_key = "low_frequency" if "low_frequency" in frequency_keys else ("baja_frecuencia" if "baja_frecuencia" in frequency_keys else frequency_keys[-1])
+    short_key = "short" if "short" in length_keys else ("corta" if "corta" in length_keys else length_keys[0])
+    long_key = "long" if "long" in length_keys else ("larga" if "larga" in length_keys else length_keys[-1])
+
+    rows = []
+    for k, results in results_by_k.items():
+        high_short = results[high_key][short_key]["clean_times"]
+        low_long = results[low_key][long_key]["clean_times"]
+
+        if len(high_short) >= 2 and len(low_long) >= 2:
+            t_stat, p_value = stats.ttest_ind(high_short, low_long, equal_var=False)
+        else:
+            t_stat, p_value = float("nan"), float("nan")
+
+        mean_high_short = float(np.mean(high_short)) if high_short else float("nan")
+        mean_low_long = float(np.mean(low_long)) if low_long else float("nan")
+        diff = abs(mean_high_short - mean_low_long)
+        denominator = min(mean_high_short, mean_low_long)
+        diff_pct = (diff / denominator * 100.0) if denominator and not np.isnan(denominator) else float("nan")
+
+        rows.append(
+            {
+                "benchmark": benchmark_name,
+                "k": k,
+                "comparison_a": f"{high_key}/{short_key}",
+                "comparison_b": f"{low_key}/{long_key}",
+                "mean_a_ms": mean_high_short,
+                "mean_b_ms": mean_low_long,
+                "absolute_difference_ms": diff,
+                "relative_difference_pct": diff_pct,
+                "welch_t_statistic": float(t_stat),
+                "p_value": float(p_value),
+            }
+        )
+
+    path = output_dir / "extreme_comparison_ttest.csv"
+    pd.DataFrame(rows).to_csv(path, index=False)
+    print(f"[+] Extreme comparison t-test CSV saved: {path}")
+
+
+def maybe_kdeplot(data: Sequence[float], ax, label: Optional[str] = None, fill: bool = True, **kwargs) -> None:
+    values = [float(value) for value in data if value is not None and not np.isnan(value)]
+    if len(values) < 2 or len(set(values)) < 2:
+        ax.hist(values, bins=min(10, max(1, len(values))), alpha=0.5, label=label)
+        return
+    sns.kdeplot(data=values, ax=ax, fill=fill, label=label, **kwargs)
+
+
+def generate_density_plots(
+    results_by_k: Dict[int, Dict[str, Dict[str, Dict[str, Any]]]],
+    output_dir: Path,
+    frequency_keys: Sequence[str],
+    length_keys: Sequence[str],
+    title_prefix: str,
+) -> None:
+    for k, results in results_by_k.items():
+        fig, axes = plt.subplots(
+            len(frequency_keys),
+            len(length_keys),
+            figsize=(6 * len(length_keys), 4.5 * len(frequency_keys)),
+            squeeze=False,
+        )
+        fig.suptitle(f"{title_prefix} Latency Distribution - k={k}", fontsize=16, fontweight="bold")
+
+        for i, frequency in enumerate(frequency_keys):
+            for j, length in enumerate(length_keys):
+                ax = axes[i][j]
+                data = results[frequency][length]["clean_times"]
+                maybe_kdeplot(data, ax=ax, fill=True, color="blue", alpha=0.6)
+
+                mean_value = results[frequency][length]["mean"]
+                if not np.isnan(mean_value):
+                    ax.axvline(
+                        mean_value,
+                        color="red",
+                        linestyle="--",
+                        linewidth=2,
+                        label=f"Mean: {mean_value:.2f} ms",
+                    )
+
+                ax.set_title(f"{label_frequency(frequency)} Frequency - {label_length(length)}")
+                ax.set_xlabel("Latency (ms)")
+                ax.set_ylabel("Density")
+                ax.legend()
+                ax.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        path = output_dir / f"density_latencies_k{k}.png"
+        plt.savefig(path, dpi=300, bbox_inches="tight")
+        plt.close()
+        print(f"[+] Density plot saved: {path}")
+
+
+def generate_overlaid_density_plots(
+    results_by_k: Dict[int, Dict[str, Dict[str, Dict[str, Any]]]],
+    output_dir: Path,
+    k_values: Sequence[int],
+    frequency_keys: Sequence[str],
+    length_keys: Sequence[str],
+    title_prefix: str,
+) -> None:
+    for k in k_values:
+        fig, axes = plt.subplots(1, len(length_keys), figsize=(6 * len(length_keys), 6), squeeze=False)
+        fig.suptitle(f"{title_prefix} Overlaid Latency Density - Top-k = {k}", fontsize=16, fontweight="bold")
+
+        for j, length in enumerate(length_keys):
+            ax = axes[0][j]
+            for frequency in frequency_keys:
+                data = results_by_k[k][frequency][length]["clean_times"]
+                maybe_kdeplot(data, ax=ax, fill=True, alpha=0.35, label=label_frequency(frequency))
+
+            ax.set_title(f"Query length: {label_length(length)}", fontsize=14)
+            ax.set_xlabel("Latency (ms)")
+            ax.set_ylabel("Density")
+            ax.legend(title="Frequency", loc="upper right")
+            ax.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        path = output_dir / f"density_overlaid_k{k}.png"
+        plt.savefig(path, dpi=300, bbox_inches="tight")
+        plt.close()
+        print(f"[+] Overlaid density plot saved: {path}")
+
+
+def generate_boxplots(
+    results_by_k: Dict[int, Dict[str, Dict[str, Dict[str, Any]]]],
+    output_dir: Path,
+    k_values: Sequence[int],
+    frequency_keys: Sequence[str],
+    length_keys: Sequence[str],
+    title_prefix: str,
+) -> None:
+    for k in k_values:
+        data = []
+        labels = []
+        for frequency in frequency_keys:
+            for length in length_keys:
+                data.append(results_by_k[k][frequency][length]["clean_times"])
+                labels.append(f"{label_frequency(frequency)[:4]}\n{label_length(length)[:4]}")
+
+        fig, ax = plt.subplots(figsize=(max(14, len(data) * 1.2), 7))
+        sns.boxplot(data=data, ax=ax, palette="Set3", showfliers=True)
+        ax.set_xticklabels(labels)
+        ax.set_title(f"{title_prefix} Latency Dispersion - Top-k = {k}", fontsize=14, fontweight="bold")
+        ax.set_xlabel("Configuration (Frequency - Length)", fontsize=12)
+        ax.set_ylabel("Latency (ms)", fontsize=12)
+        ax.grid(True, axis="y", alpha=0.3)
+
+        plt.tight_layout()
+        path = output_dir / f"box_whisker_k{k}.png"
+        plt.savefig(path, dpi=300, bbox_inches="tight")
+        plt.close()
+        print(f"[+] Boxplot saved: {path}")
+
+
+def generate_comparative_bar_chart(
+    results_by_k: Dict[int, Dict[str, Dict[str, Dict[str, Any]]]],
+    output_dir: Path,
+    k_values: Sequence[int],
+    frequency_keys: Sequence[str],
+    length_keys: Sequence[str],
+    title_prefix: str,
+) -> None:
+    rows = []
+    configs = []
+    for frequency in frequency_keys:
+        for length in length_keys:
+            configs.append((frequency, length))
+
+    for k in k_values:
+        for frequency, length in configs:
+            rows.append(
+                {
+                    "k": k,
+                    "frequency": label_frequency(frequency),
+                    "length": label_length(length),
+                    "latency_ms": results_by_k[k][frequency][length]["mean"],
+                    "configuration": f"{label_frequency(frequency)[:3]}-{label_length(length)[:3]}",
+                }
+            )
+
+    df = pd.DataFrame(rows)
+    x = np.arange(len(configs))
+    width = 0.8 / len(k_values)
+
+    fig, ax = plt.subplots(figsize=(max(16, len(configs) * 1.2), 8))
+    for index, k in enumerate(k_values):
+        k_data = df[df["k"] == k]
+        means = k_data["latency_ms"].values
+        offset = (index - (len(k_values) - 1) / 2.0) * width
+        bars = ax.bar(x + offset, means, width, label=f"k={k}")
+        for bar in bars:
+            height = bar.get_height()
+            if not np.isnan(height):
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2.0,
+                    height,
+                    f"{height:.2f}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=8,
+                    rotation=90,
+                )
+
+    labels = [f"{label_frequency(frequency)[:4]}\n{label_length(length)[:4]}" for frequency, length in configs]
+    ax.set_xlabel("Configuration (Frequency - Length)", fontsize=12)
+    ax.set_ylabel("Mean Latency (ms)", fontsize=12)
+    ax.set_title(f"{title_prefix} Latency Comparison", fontsize=14, fontweight="bold")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.legend(title="Search depth (k)", fontsize=10)
+    ax.grid(True, axis="y", alpha=0.3)
+
+    plt.tight_layout()
+    path = output_dir / "comparative_all_configurations.png"
+    plt.savefig(path, dpi=300, bbox_inches="tight")
+    plt.close()
+    print(f"[+] Comparative bar chart saved: {path}")
+
+
+def generate_heatmaps(
+    results_by_k: Dict[int, Dict[str, Dict[str, Dict[str, Any]]]],
+    output_dir: Path,
+    k_values: Sequence[int],
+    frequency_keys: Sequence[str],
+    length_keys: Sequence[str],
+    title_prefix: str,
+) -> None:
+    for k in k_values:
+        matrix = np.zeros((len(frequency_keys), len(length_keys)), dtype=float)
+        for i, frequency in enumerate(frequency_keys):
+            for j, length in enumerate(length_keys):
+                matrix[i, j] = results_by_k[k][frequency][length]["mean"]
+
+        fig, ax = plt.subplots(figsize=(10, max(8, len(frequency_keys) * 1.2)))
+        sns.heatmap(
+            matrix,
+            annot=True,
+            fmt=".2f",
+            cmap="YlOrRd",
+            xticklabels=[label_length(length) for length in length_keys],
+            yticklabels=[label_frequency(frequency) for frequency in frequency_keys],
+            ax=ax,
+            cbar_kws={"label": "Latency (ms)"},
+        )
+        ax.set_title(f"{title_prefix} Latency Heatmap - k={k}", fontsize=14, fontweight="bold")
+        ax.set_xlabel("Query Length", fontsize=12)
+        ax.set_ylabel("Semantic Frequency", fontsize=12)
+
+        plt.tight_layout()
+        path = output_dir / f"heatmap_k{k}.png"
+        plt.savefig(path, dpi=300, bbox_inches="tight")
+        plt.close()
+        print(f"[+] Heatmap saved: {path}")
+
+
+def _summary_from_raw(
+    df: pd.DataFrame,
+    group_cols: Sequence[str],
+    latency_column: str,
+) -> pd.DataFrame:
+    """Summarize raw measurements after applying a p99 filter inside each group."""
+    rows: List[Dict[str, Any]] = []
+    for group_values, group in df.groupby(list(group_cols), sort=False):
+        if not isinstance(group_values, tuple):
+            group_values = (group_values,)
+        values = pd.to_numeric(group[latency_column], errors="coerce").dropna()
+        limit = float(values.quantile(0.99)) if not values.empty else float("nan")
+        clean = values[values <= limit] if not values.empty else values
+        row = dict(zip(group_cols, group_values))
+        row.update(
+            {
+                "mean_latency_ms": float(clean.mean()) if not clean.empty else float("nan"),
+                "median_latency_ms": float(clean.median()) if not clean.empty else float("nan"),
+                "std_latency_ms": float(clean.std(ddof=0)) if not clean.empty else float("nan"),
+                "sample_size": int(clean.size),
+                "filtered_outliers": int(values.size - clean.size),
+                "outlier_limit_p99_ms": limit,
+            }
+        )
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def generate_category_outputs(
+    raw_rows: List[Dict[str, Any]],
+    output_dir: Path,
+    k_values: Sequence[int],
+    frequency_keys: Sequence[str],
+    length_keys: Sequence[str],
+    category_keys: Sequence[str],
+    title_prefix: str,
+    latency_column: str,
+) -> None:
+    """Create category-only and frequency × length × category summaries/plots."""
+    df = pd.DataFrame(raw_rows)
+    if df.empty:
+        return
+    required = {"k", "frequency_key", "length_key", "category_key", latency_column}
+    missing = required.difference(df.columns)
+    if missing:
+        raise KeyError(f"Cannot generate category outputs; missing raw columns: {sorted(missing)}")
+
+    df = df.copy()
+    df[latency_column] = pd.to_numeric(df[latency_column], errors="coerce")
+    df = df.dropna(subset=[latency_column])
+
+    category_summary = _summary_from_raw(
+        df,
+        ["k", "category_key", "category"],
+        latency_column,
+    )
+    category_summary.to_csv(output_dir / "summary_by_category.csv", index=False)
+
+    detailed_summary = _summary_from_raw(
+        df,
+        [
+            "k",
+            "frequency_key",
+            "frequency",
+            "length_key",
+            "length",
+            "category_key",
+            "category",
+        ],
+        latency_column,
+    )
+    detailed_summary.to_csv(
+        output_dir / "summary_by_frequency_length_category.csv",
+        index=False,
+    )
+
+    detail_dir = output_dir / "category_details"
+    detail_dir.mkdir(parents=True, exist_ok=True)
+
+    for k in k_values:
+        k_df = df[df["k"] == k]
+        if k_df.empty:
+            continue
+
+        # Overall latency distributions split by biomedical category.
+        fig, ax = plt.subplots(figsize=(13, 7))
+        sns.boxplot(
+            data=k_df,
+            x="category",
+            y=latency_column,
+            hue="category",
+            order=[label_category(category) for category in category_keys],
+            hue_order=[label_category(category) for category in category_keys],
+            showfliers=True,
+            legend=False,
+            ax=ax,
+            palette="Set2",
+        )
+        ax.set_title(f"{title_prefix} Latency by Category - k={k}", fontweight="bold")
+        ax.set_xlabel("Query category")
+        ax.set_ylabel("Latency (ms)")
+        ax.tick_params(axis="x", rotation=20)
+        ax.grid(True, axis="y", alpha=0.3)
+        plt.tight_layout()
+        path = output_dir / f"boxplot_by_category_k{k}.png"
+        plt.savefig(path, dpi=300, bbox_inches="tight")
+        plt.close()
+        print(f"[+] Category boxplot saved: {path}")
+
+        # Mean latency by category.
+        means = (
+            category_summary[category_summary["k"] == k]
+            .set_index("category_key")
+            .reindex(category_keys)
+        )
+        fig, ax = plt.subplots(figsize=(12, 7))
+        x = np.arange(len(category_keys))
+        bars = ax.bar(
+            x,
+            means["mean_latency_ms"].to_numpy(dtype=float),
+            color=sns.color_palette("Set2", len(category_keys)),
+        )
+        ax.errorbar(
+            x,
+            means["mean_latency_ms"].to_numpy(dtype=float),
+            yerr=means["std_latency_ms"].fillna(0).to_numpy(dtype=float),
+            fmt="none",
+            ecolor="black",
+            capsize=4,
+        )
+        ax.set_xticks(x)
+        ax.set_xticklabels([label_category(category) for category in category_keys], rotation=20)
+        ax.set_title(f"{title_prefix} Mean Latency by Category - k={k}", fontweight="bold")
+        ax.set_xlabel("Query category")
+        ax.set_ylabel("Mean latency (ms)")
+        ax.grid(True, axis="y", alpha=0.3)
+        for bar in bars:
+            height = bar.get_height()
+            if not np.isnan(height):
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    height,
+                    f"{height:.2f}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=9,
+                )
+        plt.tight_layout()
+        path = output_dir / f"mean_latency_by_category_k{k}.png"
+        plt.savefig(path, dpi=300, bbox_inches="tight")
+        plt.close()
+        print(f"[+] Category mean chart saved: {path}")
+
+        # One heatmap and one distribution plot per category. Each cell is an
+        # exact frequency × length × category combination, e.g.
+        # Very high × Short × Anatomy.
+        for category in category_keys:
+            category_label = label_category(category)
+            category_df = k_df[k_df["category_key"] == category].copy()
+            category_summary_k = detailed_summary[
+                (detailed_summary["k"] == k)
+                & (detailed_summary["category_key"] == category)
+            ]
+            matrix = np.full((len(frequency_keys), len(length_keys)), np.nan)
+            for i, frequency in enumerate(frequency_keys):
+                for j, length in enumerate(length_keys):
+                    cell = category_summary_k[
+                        (category_summary_k["frequency_key"] == frequency)
+                        & (category_summary_k["length_key"] == length)
+                    ]
+                    if not cell.empty:
+                        matrix[i, j] = float(cell.iloc[0]["mean_latency_ms"])
+
+            fig, ax = plt.subplots(figsize=(10, max(7, len(frequency_keys) * 1.0)))
+            sns.heatmap(
+                matrix,
+                annot=True,
+                fmt=".2f",
+                cmap="YlOrRd",
+                xticklabels=[label_length(length) for length in length_keys],
+                yticklabels=[label_frequency(frequency) for frequency in frequency_keys],
+                cbar_kws={"label": "Mean latency (ms)"},
+                ax=ax,
+            )
+            ax.set_title(
+                f"{title_prefix}: {category_label} - k={k}",
+                fontweight="bold",
+            )
+            ax.set_xlabel("Query length")
+            ax.set_ylabel("Frequency")
+            plt.tight_layout()
+            path = detail_dir / f"heatmap_{safe_name(category)}_k{k}.png"
+            plt.savefig(path, dpi=300, bbox_inches="tight")
+            plt.close()
+            print(f"[+] Category-detail heatmap saved: {path}")
+
+            category_df["configuration"] = (
+                category_df["frequency"].astype(str)
+                + "\n"
+                + category_df["length"].astype(str)
+            )
+            config_order = [
+                f"{label_frequency(frequency)}\n{label_length(length)}"
+                for frequency in frequency_keys
+                for length in length_keys
+            ]
+            fig, ax = plt.subplots(figsize=(max(16, len(config_order) * 0.85), 7))
+            sns.boxplot(
+                data=category_df,
+                x="configuration",
+                y=latency_column,
+                hue="configuration",
+                order=config_order,
+                hue_order=config_order,
+                showfliers=True,
+                legend=False,
+                ax=ax,
+                palette="Set3",
+            )
+            ax.set_title(
+                f"{title_prefix}: Frequency × Length for {category_label} - k={k}",
+                fontweight="bold",
+            )
+            ax.set_xlabel("Frequency and query length")
+            ax.set_ylabel("Latency (ms)")
+            ax.tick_params(axis="x", rotation=45)
+            ax.grid(True, axis="y", alpha=0.3)
+            plt.tight_layout()
+            path = detail_dir / f"boxplot_{safe_name(category)}_k{k}.png"
+            plt.savefig(path, dpi=300, bbox_inches="tight")
+            plt.close()
+            print(f"[+] Category-detail boxplot saved: {path}")
+
+
+def generate_all_outputs(
+    results_by_k: Dict[int, Dict[str, Dict[str, Dict[str, Any]]]],
+    raw_rows: List[Dict[str, Any]],
+    output_dir: Path,
+    k_values: Sequence[int],
+    frequency_keys: Sequence[str],
+    length_keys: Sequence[str],
+    category_keys: Sequence[str],
+    title_prefix: str,
+    benchmark_name: str,
+    raw_filename: str = "raw_latencies.csv",
+    latency_column_label: str = "latency_ms",
+) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    save_raw_csv(raw_rows, output_dir, filename=raw_filename)
+    save_summary_csv(
+        results_by_k,
+        output_dir,
+        frequency_keys,
+        length_keys,
+        benchmark_name,
+        latency_column_label=latency_column_label,
+    )
+    save_ttest_csv(results_by_k, output_dir, frequency_keys, length_keys, benchmark_name)
+    generate_density_plots(results_by_k, output_dir, frequency_keys, length_keys, title_prefix)
+    generate_overlaid_density_plots(results_by_k, output_dir, k_values, frequency_keys, length_keys, title_prefix)
+    generate_boxplots(results_by_k, output_dir, k_values, frequency_keys, length_keys, title_prefix)
+    generate_comparative_bar_chart(results_by_k, output_dir, k_values, frequency_keys, length_keys, title_prefix)
+    generate_heatmaps(results_by_k, output_dir, k_values, frequency_keys, length_keys, title_prefix)
+    generate_category_outputs(
+        raw_rows,
+        output_dir,
+        k_values,
+        frequency_keys,
+        length_keys,
+        category_keys,
+        title_prefix,
+        latency_column_label,
+    )
+
+
+def parse_retrieval_include(value: str) -> Optional[List[str]]:
+    normalized = value.strip().lower()
+    if normalized == "default":
+        return None
+    if normalized in {"none", "empty"}:
+        return []
+    return parse_csv_values(value, str)
+
+
+def warmup_retrieval(collection, embedding: Sequence[float], k: int, include: Optional[List[str]]) -> None:
+    kwargs = {"query_embeddings": [list(embedding)], "n_results": k}
+    if include is not None:
+        kwargs["include"] = include
+    collection.query(**kwargs)
+
+
+def run_retrieval_only_benchmark(
+    query_items: Sequence[QueryItem],
+    frequency_keys: Sequence[str],
+    length_keys: Sequence[str],
+    database_dir: Path,
+    collection_name: str,
+    embedding_model_name: str,
+    k_values: Sequence[int],
+    num_iterations: int,
+    seed: Optional[int],
+    include: Optional[List[str]],
+    batch_size: int,
+) -> Tuple[Dict[int, Dict[str, Dict[str, Dict[str, Any]]]], List[Dict[str, Any]], str]:
+    print("\n" + "=" * 70)
+    print("STARTING CHROMADB/HNSW RETRIEVAL-ONLY BENCHMARK")
+    print("=" * 70)
+
+    client = chromadb.PersistentClient(path=str(database_dir))
+    collection, actual_collection_name = resolve_chroma_collection(client, collection_name)
+    print(f"[+] Loaded collection: {actual_collection_name}")
+    print(f"[+] Total vectors in collection: {collection.count()}")
+
+    print(f"[*] Loading embedding model for pre-encoding: {embedding_model_name}")
+    model = SentenceTransformer(embedding_model_name)
+
+    texts = [item.text for item in query_items]
+    print(f"[*] Pre-encoding {len(texts)} queries before timing retrieval...")
+    embeddings = model.encode(texts, batch_size=batch_size, show_progress_bar=True, convert_to_numpy=True)
+
+    print("[*] Warming up Chroma/HNSW retrieval...")
+    warmup_retrieval(collection, embeddings[0].tolist(), k=1, include=include)
+    print("[+] Retrieval warm-up complete")
+
+    rng = random.Random(seed)
+    results_by_k: Dict[int, Dict[str, Dict[str, Dict[str, Any]]]] = {}
+    raw_rows: List[Dict[str, Any]] = []
+
+    gc.disable()
+    try:
+        for k in k_values:
+            print("\n" + "-" * 70)
+            print(f"Retrieval-only benchmark for k={k}")
+            print("-" * 70)
+            gc.collect()
+            time.sleep(2)
+
+            times_by_config = initialize_times(frequency_keys, length_keys)
+
+            for iteration in range(num_iterations):
+                # Preserve the exact query order produced by load_query_dataset.
+                # No shuffling is performed.
+                order = list(range(len(query_items)))
+                print(f"    -> Iteration {iteration + 1}/{num_iterations} in original query order")
+
+                for position, query_index in enumerate(order):
+                    item = query_items[query_index]
+                    embedding = embeddings[query_index].tolist()
+                    kwargs = {"query_embeddings": [embedding], "n_results": k}
+                    if include is not None:
+                        kwargs["include"] = include
+
+                    start = time.perf_counter()
+                    collection.query(**kwargs)
+                    end = time.perf_counter()
+
+                    retrieval_latency_ms = (end - start) * 1000.0
+                    times_by_config[item.frequency][item.length].append(retrieval_latency_ms)
+                    raw_rows.append(
+                        {
+                            "benchmark": "chroma_hnsw_retrieval_only",
+                            "k": k,
+                            "iteration": iteration + 1,
+                            "position_in_shuffled_iteration": position + 1,
+                            "query_id": item.query_id,
+                            "frequency_key": item.frequency,
+                            "frequency": label_frequency(item.frequency),
+                            "length_key": item.length,
+                            "length": label_length(item.length),
+                            "category_key": item.category,
+                            "category": label_category(item.category),
+                            "retrieval_latency_ms": retrieval_latency_ms,
+                            "latency_ms": retrieval_latency_ms,
+                            "query_text": item.text,
+                        }
+                    )
+
+                    if (position + 1) % 50 == 0:
+                        print(f"        Progress: {position + 1}/{len(query_items)} queries", flush=True)
+
+            results_by_k[k] = compute_results(times_by_config, frequency_keys, length_keys)
+    finally:
+        gc.enable()
+        gc.collect()
+
+    return results_by_k, raw_rows, actual_collection_name
+
+
+class TimedHuggingFacePipeline(HuggingFacePipeline):
+    """Measure the uncached generation path, not just the full invoke() call.
+
+    This includes Hugging Face tokenization, inference, decoding and response
+    conversion. It is wall time, not a device-kernel-only CUDA measurement.
+    No generation-path call occurs on a cache hit.
+    """
+
+    _generation_latency_ms: float = PrivateAttr(default=0.0)
+    _generation_calls: int = PrivateAttr(default=0)
+
+    def reset_generation_timing(self) -> None:
+        self._generation_latency_ms = 0.0
+        self._generation_calls = 0
+
+    def _generate(
+        self,
+        prompts: List[str],
+        stop: Optional[List[str]] = None,
+        run_manager: Any = None,
+        **kwargs: Any,
+    ) -> LLMResult:
+        start = time.perf_counter()
+        self._generation_calls += 1
+        try:
+            return super()._generate(
+                prompts, stop=stop, run_manager=run_manager, **kwargs
+            )
+        finally:
+            self._generation_latency_ms += (time.perf_counter() - start) * 1000.0
+
+
+def configure_llm(model_id: str, max_new_tokens: int) -> TimedHuggingFacePipeline:
+    print(f"[*] Loading LLM: {model_id}")
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype="auto", device_map="auto")
+
+    # The original SmolLM2 checkpoint supplies special tokens but no custom
+    # decoding penalties. Qwen ships repetition_penalty=1.1; merely setting
+    # do_sample=False does NOT disable that penalty. Rebuild the neutral
+    # generation policy, retaining the NEW model's native BOS/EOS identifiers.
+    # All of this runs once at model initialization, outside request timing.
+    native_generation_config = model.generation_config
+    if tokenizer.eos_token_id is None:
+        raise ValueError(f"The selected tokenizer has no EOS token: {model_id}")
+    native_eos = native_generation_config.eos_token_id
+    if native_eos is None:
+        native_eos = tokenizer.eos_token_id
+    model.generation_config = GenerationConfig(
+        bos_token_id=native_generation_config.bos_token_id,
+        eos_token_id=native_eos,  # Preserve lists too, including both Qwen EOS IDs.
+        pad_token_id=tokenizer.eos_token_id,  # Same padding rule as the source.
+        max_new_tokens=max_new_tokens,
+        min_new_tokens=1,
+        do_sample=False,
+        num_beams=1,
+        num_return_sequences=1,
+        repetition_penalty=1.0,
+        temperature=1.0,
+        top_p=1.0,
+        top_k=50,
+        use_cache=True,
+    )
+    print("[*] Generation policy: smollm2_greedy_v1")
+    print(model.generation_config.to_json_string())
+    print(f"[*] Model class: {type(model).__name__}; dtype: {model.dtype}")
+    context_limit = getattr(model.config, "max_position_embeddings", None)
+    print(f"[*] Model context limit: {context_limit}")
+    print(f"[*] Native tokenizer limit: {tokenizer.model_max_length}")
+    print(
+        "[!] Native tokenization/truncation is preserved, without a new context "
+        "crop or chat template. Input tokens plus the output budget must "
+        "fit the model context limit shown above."
+    )
+
+    generation_settings = {
+        "max_new_tokens": max_new_tokens,
+        "min_new_tokens": 1,
+        "return_full_text": False,
+        "truncation": True,
+        "do_sample": False,
+        "pad_token_id": tokenizer.eos_token_id,
+    }
+    text_generation_pipe = pipeline(
+        "text-generation",
+        model=model,
+        tokenizer=tokenizer,
+        **generation_settings,
+    )
+
+    llm = TimedHuggingFacePipeline(
+        pipeline=text_generation_pipe,
+        model_id=model_id,
+        # Make the generation settings part of LangChain's model identity too.
+        pipeline_kwargs=generation_settings,
+        cache=False,  # Never inherit an unrelated global cache.
+    )
+    print("[+] LLM loaded")
+    return llm
+
+
+def format_documents(docs: Sequence[Any]) -> str:
+    parts = []
+    for index, doc in enumerate(docs, start=1):
+        content = getattr(doc, "page_content", "")
+        parts.append(f"[Document {index}]\n{content}")
+    return "\n\n".join(parts)
+
+
+def run_single_rag_with_component_timing(
+    retriever: Any,
+    llm: TimedHuggingFacePipeline,
+    prompt: PromptTemplate,
+    query_text: str,
+) -> Dict[str, Any]:
+    # Bookkeeping resets are outside the measured request, just like row writing.
+    cache = llm.cache if isinstance(llm.cache, InstrumentedSemanticCache) else None
+    if cache is not None:
+        cache.reset_metrics()
+    llm.reset_generation_timing()
+    total_start = time.perf_counter()
+
+    retrieval_start = time.perf_counter()
+    if hasattr(retriever, "invoke"):
+        docs = retriever.invoke(query_text)
+    else:
+        docs = retriever.get_relevant_documents(query_text)
+    retrieval_end = time.perf_counter()
+
+    prompt_start = time.perf_counter()
+    context = format_documents(docs)
+    formatted_prompt = prompt.format(context=context, input=query_text)
+    prompt_end = time.perf_counter()
+
+    llm_start = time.perf_counter()
+    answer = llm.invoke(formatted_prompt)
+    llm_end = time.perf_counter()
+
+    total_end = time.perf_counter()
+
+    retrieval_latency_ms = (retrieval_end - retrieval_start) * 1000.0
+    prompt_formatting_latency_ms = (prompt_end - prompt_start) * 1000.0
+    llm_latency_ms = (llm_end - llm_start) * 1000.0
+    rag_end_to_end_latency_ms = (total_end - total_start) * 1000.0
+    measured_component_sum_ms = retrieval_latency_ms + prompt_formatting_latency_ms + llm_latency_ms
+    overhead_latency_ms = rag_end_to_end_latency_ms - measured_component_sum_ms
+    cache_metrics = cache.snapshot() if cache is not None else disabled_cache_metrics()
+    generation_latency_ms = llm._generation_latency_ms
+    generation_executed = llm._generation_calls > 0
+
+    if cache is not None:
+        if cache.lookup_calls != 1:
+            raise RuntimeError(
+                f"Expected one cache lookup per invoke; observed {cache.lookup_calls}. "
+                "Check LangChain compatibility before interpreting the measurements."
+            )
+        if cache.hit and (generation_executed or cache.update_calls != 0):
+            raise RuntimeError("Cache hit unexpectedly executed generation or a cache write.")
+        if not cache.hit and (llm._generation_calls != 1 or cache.update_calls != 1):
+            raise RuntimeError("Cache miss did not execute exactly one generation/cache update.")
+
+    llm_dispatch_overhead_ms = (
+        llm_latency_ms - generation_latency_ms
+        - cache_metrics["cache_lookup_latency_ms"]
+        - cache_metrics["cache_update_latency_ms"]
+    )
+
+    return {
+        "answer": answer,
+        "num_retrieved_docs": len(docs),
+        "context_num_chars": len(context),
+        "prompt_num_chars": len(formatted_prompt),
+        "retrieval_latency_ms": retrieval_latency_ms,
+        "prompt_formatting_latency_ms": prompt_formatting_latency_ms,
+        # Preserve the legacy name: this is always the complete invoke() time.
+        "llm_latency_ms": llm_latency_ms,
+        "llm_invoke_latency_ms": llm_latency_ms,
+        "llm_generation_latency_ms": generation_latency_ms,
+        "llm_generation_executed": generation_executed,
+        "llm_generation_calls": llm._generation_calls,
+        "llm_dispatch_overhead_latency_ms": llm_dispatch_overhead_ms,
+        **cache_metrics,
+        # Audit hashes are computed after total_end, outside the timed request.
+        "formatted_prompt_sha256": hashlib.sha256(formatted_prompt.encode("utf-8")).hexdigest(),
+        "rag_end_to_end_latency_ms": rag_end_to_end_latency_ms,
+        "component_sum_latency_ms": measured_component_sum_ms,
+        "overhead_latency_ms": overhead_latency_ms,
+    }
+
+
+def run_full_rag_benchmark(
+    query_items: Sequence[QueryItem],
+    frequency_keys: Sequence[str],
+    length_keys: Sequence[str],
+    database_dir: Path,
+    collection_name: str,
+    embedding_model_name: str,
+    llm_model_name: str,
+    k_values: Sequence[int],
+    num_iterations: int,
+    seed: Optional[int],
+    max_new_tokens: int,
+    cache_config: Optional[SemanticCacheConfig] = None,
+) -> Tuple[
+    Dict[int, Dict[str, Dict[str, Dict[str, Any]]]],
+    Dict[int, Dict[str, Dict[str, Dict[str, Any]]]],
+    Dict[int, Dict[str, Dict[str, Dict[str, Any]]]],
+    List[Dict[str, Any]],
+]:
+    print("\n" + "=" * 70)
+    print("STARTING FULL RAG END-TO-END BENCHMARK")
+    print("=" * 70)
+
+    cache_config = cache_config or SemanticCacheConfig()
+    if cache_config.enabled and not cache_config.session_id:
+        raise ValueError("An enabled semantic cache requires a non-empty session_id.")
+    redis_client = connect_cache_redis(cache_config) if cache_config.enabled else None
+    llm = configure_llm(llm_model_name, max_new_tokens=max_new_tokens)
+
+    print(f"[*] Connecting LangChain Chroma to: {database_dir}")
+    embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name)
+    vectorstore = Chroma(
+        collection_name=collection_name,
+        persist_directory=str(database_dir),
+        embedding_function=embeddings,
+    )
+
+    cache_embeddings = None
+    if cache_config.enabled:
+        cache_model = cache_config.embedding_model_name or embedding_model_name
+        if cache_model == embedding_model_name and cache_config.embedding_device is None:
+            cache_embeddings = embeddings
+        else:
+            model_kwargs = (
+                {"device": cache_config.embedding_device}
+                if cache_config.embedding_device is not None else {}
+            )
+            cache_embeddings = HuggingFaceEmbeddings(
+                model_name=cache_model, model_kwargs=model_kwargs
+            )
+        print(f"[+] Semantic cache enabled; session={cache_config.session_id}")
+        print(f"    Cache embedding model: {cache_model}")
+        print(f"    Distance threshold: {cache_config.distance_threshold}")
+        print(f"    Reset policy: {cache_config.reset_policy}; separate index for every k")
+        print("[!] Cache similarity uses the full formatted prompt, including context.")
+        if "all-minilm-l6-v2" in cache_model.lower():
+            print(
+                "[!] This MiniLM model truncates at 256 word pieces by default. "
+                "The question may be truncated because context comes first. "
+                "Audit non-identical-prompt hits for answer correctness."
+            )
+
+    prompt = PromptTemplate.from_template(PROMPT_TEMPLATE)
+    rng = random.Random(seed)
+
+    rag_results_by_k: Dict[int, Dict[str, Dict[str, Dict[str, Any]]]] = {}
+    retrieval_component_results_by_k: Dict[int, Dict[str, Dict[str, Dict[str, Any]]]] = {}
+    llm_component_results_by_k: Dict[int, Dict[str, Dict[str, Dict[str, Any]]]] = {}
+    raw_rows: List[Dict[str, Any]] = []
+
+    gc.disable()
+    try:
+        for k in k_values:
+            print("\n" + "-" * 70)
+            print(f"Full RAG benchmark for k={k}")
+            print("-" * 70)
+
+            retriever = vectorstore.as_retriever(search_kwargs={"k": k})
+            cache = None
+            if cache_config.enabled:
+                namespace = build_cache_namespace(
+                    cache_config, k, database_dir, collection_name,
+                    embedding_model_name, llm_model_name, max_new_tokens,
+                )
+                cache = make_semantic_cache(
+                    cache_config, cache_embeddings, redis_client, namespace
+                )
+                if cache_config.reset_policy == "per-k":
+                    cache.clear()
+                llm.cache = cache
+                print(f"[+] Redis cache namespace: {namespace}")
+
+            print("[*] Warming up full RAG components (cache bypassed)...")
+            saved_cache = llm.cache
+            llm.cache = False
+            try:
+                run_single_rag_with_component_timing(
+                    retriever=retriever,
+                    llm=llm,
+                    prompt=prompt,
+                    query_text="warmup query to load the RAG pipeline",
+                )
+            finally:
+                llm.cache = saved_cache
+            print("[+] Full RAG warm-up complete; no warm-up answer was cached")
+
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            time.sleep(2)
+
+            rag_times_by_config = initialize_times(frequency_keys, length_keys)
+            retrieval_times_by_config = initialize_times(frequency_keys, length_keys)
+            llm_times_by_config = initialize_times(frequency_keys, length_keys)
+
+            for iteration in range(num_iterations):
+                if cache is not None and cache_config.reset_policy == "per-iteration":
+                    cache.clear()
+                # Preserve the exact query order produced by load_query_dataset.
+                # No shuffling is performed.
+                order = list(range(len(query_items)))
+                print(f"    -> Iteration {iteration + 1}/{num_iterations} in original query order")
+
+                for position, query_index in enumerate(order):
+                    item = query_items[query_index]
+                    metrics = run_single_rag_with_component_timing(
+                        retriever=retriever,
+                        llm=llm,
+                        prompt=prompt,
+                        query_text=item.text,
+                    )
+
+                    rag_latency_ms = metrics["rag_end_to_end_latency_ms"]
+                    retrieval_latency_ms = metrics["retrieval_latency_ms"]
+                    llm_latency_ms = metrics["llm_latency_ms"]
+
+                    rag_times_by_config[item.frequency][item.length].append(rag_latency_ms)
+                    retrieval_times_by_config[item.frequency][item.length].append(retrieval_latency_ms)
+                    llm_times_by_config[item.frequency][item.length].append(llm_latency_ms)
+
+                    answer = metrics.get("answer", "")
+
+                    raw_rows.append(
+                        {
+                            "benchmark": "full_rag_end_to_end",
+                            "k": k,
+                            "iteration": iteration + 1,
+                            "position_in_shuffled_iteration": position + 1,
+                            "query_id": item.query_id,
+                            "frequency_key": item.frequency,
+                            "frequency": label_frequency(item.frequency),
+                            "length_key": item.length,
+                            "length": label_length(item.length),
+                            "category_key": item.category,
+                            "category": label_category(item.category),
+                            "query_text": item.text,
+                            "rag_end_to_end_latency_ms": rag_latency_ms,
+                            "retrieval_latency_ms": retrieval_latency_ms,
+                            "llm_latency_ms": llm_latency_ms,
+                            "prompt_formatting_latency_ms": metrics["prompt_formatting_latency_ms"],
+                            "component_sum_latency_ms": metrics["component_sum_latency_ms"],
+                            "overhead_latency_ms": metrics["overhead_latency_ms"],
+                            "latency_ms": rag_latency_ms,
+                            "num_retrieved_docs": metrics["num_retrieved_docs"],
+                            "context_num_chars": metrics["context_num_chars"],
+                            "prompt_num_chars": metrics["prompt_num_chars"],
+                            "answer_num_chars": len(str(answer)),
+                            "answer_preview": str(answer).replace("\n", " ")[:250],
+                            "answer_sha256": hashlib.sha256(str(answer).encode("utf-8")).hexdigest(),
+                            "cache_reset_policy": cache_config.reset_policy if cache is not None else "disabled",
+                            "cache_session": cache_config.session_id if cache is not None else "",
+                            **{
+                                key: value for key, value in metrics.items()
+                                if key.startswith("cache_") or key in {
+                                    "llm_invoke_latency_ms", "llm_generation_latency_ms",
+                                    "llm_generation_executed", "llm_generation_calls",
+                                    "llm_dispatch_overhead_latency_ms", "formatted_prompt_sha256",
+                                }
+                            },
+                        }
+                    )
+
+                    if (position + 1) % 50 == 0:
+                        print(f"        Progress: {position + 1}/{len(query_items)} queries", flush=True)
+
+            rag_results_by_k[k] = compute_results(rag_times_by_config, frequency_keys, length_keys)
+            retrieval_component_results_by_k[k] = compute_results(retrieval_times_by_config, frequency_keys, length_keys)
+            llm_component_results_by_k[k] = compute_results(llm_times_by_config, frequency_keys, length_keys)
+    finally:
+        llm.cache = False
+        if redis_client is not None:
+            redis_client.close()
+        gc.enable()
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+    return rag_results_by_k, retrieval_component_results_by_k, llm_component_results_by_k, raw_rows
+
+
+def save_rag_component_summary(
+    raw_rows: List[Dict[str, Any]],
+    output_dir: Path,
+) -> None:
+    df = pd.DataFrame(raw_rows)
+    if df.empty:
+        return
+
+    group_cols = [
+        "k",
+        "frequency_key",
+        "frequency",
+        "length_key",
+        "length",
+        "category_key",
+        "category",
+    ]
+    metrics = [
+        "rag_end_to_end_latency_ms",
+        "retrieval_latency_ms",
+        "llm_latency_ms",
+        "prompt_formatting_latency_ms",
+        "overhead_latency_ms",
+    ]
+
+    summary = (
+        df.groupby(group_cols)[metrics]
+        .agg(["mean", "median", "std", "count"])
+        .reset_index()
+    )
+
+    summary.columns = [
+        "_".join([str(part) for part in col if str(part)])
+        if isinstance(col, tuple)
+        else str(col)
+        for col in summary.columns
+    ]
+
+    path = output_dir / "rag_component_summary_by_configuration.csv"
+    summary.to_csv(path, index=False)
+    print(f"[+] RAG component summary CSV saved: {path}")
+
+
+def save_cache_summaries(raw_rows: List[Dict[str, Any]], output_dir: Path) -> None:
+    """Unfiltered summaries: do not let a pooled p99 filter erase cache misses.
+
+    Legacy summaries are retained unchanged for compatibility. For cache
+    comparisons, use these files or the unfiltered per-query CSV instead.
+    """
+    df = pd.DataFrame(raw_rows)
+    if df.empty:
+        return
+    output_dir.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for (k, iteration), group in df.groupby(["k", "iteration"], sort=False):
+        enabled = bool(group["cache_enabled"].iloc[0])
+        hits = int(group["cache_hit"].eq(True).sum())
+        misses = int(group["cache_hit"].eq(False).sum())
+        lookups = hits + misses
+        rows.append({
+            "k": int(k),
+            "iteration": int(iteration),
+            "cache_enabled": enabled,
+            "cache_namespace": group["cache_namespace"].iloc[0],
+            "requests": len(group),
+            "hits": hits,
+            "misses": misses,
+            "hit_rate": hits / lookups if lookups else float("nan"),
+            "exact_prompt_hits": int(group["cache_match_type"].eq("exact_prompt").sum()),
+            "similar_prompt_hits": int(group["cache_match_type"].eq("similar_prompt").sum()),
+            "unknown_source_hits": int(group["cache_match_type"].eq("unknown_source").sum()),
+            "generation_calls": int(group["llm_generation_calls"].sum()),
+            "mean_rag_latency_ms": float(group["rag_end_to_end_latency_ms"].mean()),
+            "mean_llm_invoke_latency_ms": float(group["llm_invoke_latency_ms"].mean()),
+            "mean_cache_lookup_latency_ms": float(group["cache_lookup_latency_ms"].mean()),
+            "mean_cache_update_latency_ms": float(group["cache_update_latency_ms"].mean()),
+        })
+    summary_path = output_dir / "cache_summary_by_k_iteration.csv"
+    pd.DataFrame(rows).to_csv(summary_path, index=False)
+
+    metrics = [
+        "rag_end_to_end_latency_ms", "retrieval_latency_ms",
+        "prompt_formatting_latency_ms", "llm_invoke_latency_ms",
+        "llm_generation_latency_ms", "cache_lookup_latency_ms",
+        "cache_update_latency_ms", "llm_dispatch_overhead_latency_ms",
+    ]
+    for filename, group_cols in [
+        ("cache_latency_by_status.csv", ["k", "iteration", "cache_match_type"]),
+        ("cache_latency_by_configuration.csv", [
+            "k", "iteration", "frequency_key", "length_key", "category_key", "cache_match_type"
+        ]),
+    ]:
+        summary = df.groupby(group_cols, sort=False)[metrics].agg(["mean", "median", "std", "count"])
+        summary.columns = [f"{metric}_{statistic}" for metric, statistic in summary.columns]
+        summary.reset_index().to_csv(output_dir / filename, index=False)
+    print(f"[+] Unfiltered cache summaries saved: {summary_path}")
+
+
+def installed_package_versions() -> Dict[str, str]:
+    versions = {}
+    for name in (
+        "langchain-core", "langchain-redis", "langchain-huggingface",
+        "langchain-chroma", "redis", "redisvl", "chromadb",
+        "transformers", "sentence-transformers", "torch", "pydantic",
+    ):
+        try:
+            versions[name] = importlib.metadata.version(name)
+        except importlib.metadata.PackageNotFoundError:
+            versions[name] = "not installed"
+    return versions
+
+
+def write_run_config(
+    path: Path,
+    args: argparse.Namespace,
+    query_counts: Dict[str, Any],
+    frequency_keys: Sequence[str],
+    length_keys: Sequence[str],
+    category_keys: Sequence[str],
+    actual_collection_name: Optional[str] = None,
+) -> None:
+    safe_arguments = dict(vars(args))
+    if safe_arguments.get("redis_url"):
+        safe_arguments["redis_url"] = "<redacted; supply through REDIS_URL>"
+    config = {
+        "arguments": safe_arguments,
+        "package_versions": installed_package_versions(),
+        "cache_semantic_input": "full_formatted_prompt",
+        "cache_namespaces_separated_by_k": True,
+        "warmup_uses_cache": False,
+        "llm_latency_ms_definition": "full llm.invoke wall time, including cache operations",
+        "llm_generation_latency_ms_definition": "uncached HF generation-path wall time; zero on hit",
+        "legacy_summaries": "original pooled p99 filtering retained; use cache summaries for hit/miss analysis",
+        "frequency_keys_used": list(frequency_keys),
+        "length_keys_used": list(length_keys),
+        "category_keys_used": list(category_keys),
+        "query_counts": query_counts,
+        "actual_collection_name": actual_collection_name,
+        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(config, handle, indent=2)
+    print(f"[+] Run configuration saved: {path}")
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="PubMed RAG timing benchmarks.")
+    parser.add_argument("--project-root", default=None, help="Project root. Defaults to the parent of this script's directory.")
+    parser.add_argument("--queries", default=DEFAULT_QUERY_FILE, help="Path to the grouped query JSON relative to project root.")
+    parser.add_argument("--database", default=DEFAULT_DATABASE_DIR, help="Path to Chroma database directory relative to project root.")
+    parser.add_argument("--collection-name", default=DEFAULT_COLLECTION_NAME, help="Chroma collection name.")
+    parser.add_argument("--output-root", default=DEFAULT_OUTPUT_DIR, help="Output directory relative to project root.")
+    parser.add_argument("--k-values", default=",".join(map(str, DEFAULT_K_VALUES)), help="Comma-separated k values.")
+    parser.add_argument("--retrieval-iterations", type=int, default=DEFAULT_RETRIEVAL_ITERATIONS)
+    parser.add_argument("--rag-iterations", type=int, default=DEFAULT_RAG_ITERATIONS)
+    parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Random seed used only for optional query subsampling. Query execution order is preserved.")
+    parser.add_argument("--mode", choices=["both", "retrieval", "rag"], default="both")
+    parser.add_argument("--embedding-model", default=DEFAULT_EMBEDDING_MODEL)
+    parser.add_argument("--llm-model", default=DEFAULT_LLM_MODEL)
+    parser.add_argument("--max-new-tokens", type=int, default=100)
+    parser.add_argument("--embedding-batch-size", type=int, default=64)
+    parser.add_argument("--frequency-keys", default="auto", help="Comma-separated keys or 'auto'.")
+    parser.add_argument("--length-keys", default="auto", help="Comma-separated keys or 'auto'.")
+    parser.add_argument("--category-keys", default="auto", help="Comma-separated category keys or 'auto'.")
+    parser.add_argument(
+        "--max-queries-per-cell",
+        type=int,
+        default=0,
+        help="Optional cap per frequency/length/category cell. 0 means use all queries.",
+    )
+    parser.add_argument(
+        "--retrieval-include",
+        default="distances",
+        help="Chroma include list for retrieval-only queries. Use 'default' to reproduce Chroma defaults.",
+    )
+    parser.add_argument(
+        "--semantic-cache", action="store_true",
+        help="Enable the Redis semantic LLM cache. Disabled by default.",
+    )
+    parser.add_argument(
+        "--redis-url", default=None,
+        help="Redis URL. Prefer REDIS_URL to avoid passwords in shell history. Defaults to localhost.",
+    )
+    parser.add_argument("--cache-name", default="pubmed_llm_semantic")
+    parser.add_argument(
+        "--cache-session", default=None,
+        help="Cache session identifier. Default: fresh UUID for each run.",
+    )
+    parser.add_argument(
+        "--cache-reset", choices=["per-k", "per-iteration", "none"], default="per-k",
+        help="per-k: cold start per k, reuse across iterations; per-iteration: cold start each pass; none: no clearing.",
+    )
+    parser.add_argument(
+        "--cache-threshold", type=float, default=0.1,
+        help="Maximum semantic cosine distance (0 to 2). Lower is stricter; not an answer-quality guarantee.",
+    )
+    parser.add_argument(
+        "--cache-ttl", type=int, default=0,
+        help="Entry TTL in seconds. 0 disables expiration to avoid an expiry confound.",
+    )
+    parser.add_argument(
+        "--cache-embedding-model", default=None,
+        help="Optional separate cache encoder. Defaults to the retrieval encoder; full-prompt truncation may occur.",
+    )
+    parser.add_argument(
+        "--cache-embedding-device", default=None,
+        help="Optional cache-encoder device, e.g. cpu or cuda:0. Not the retrieval encoder's device.",
+    )
+    parser.add_argument(
+        "--cache-corpus-version", default="unspecified",
+        help="Corpus revision included in the cache namespace. Change after index edits when reusing a session.",
+    )
+    return parser
+
+
+def main() -> None:
+    os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+
+    parser = build_arg_parser()
+    args = parser.parse_args()
+    if not 0.0 <= args.cache_threshold <= 2.0:
+        parser.error("--cache-threshold must be between 0 and 2.")
+    if args.cache_ttl < 0:
+        parser.error("--cache-ttl must be nonnegative (0 means no expiration).")
+    if args.rag_iterations < 1 or args.retrieval_iterations < 1:
+        parser.error("Iteration counts must be positive.")
+    if args.semantic_cache and args.mode == "retrieval":
+        parser.error("--semantic-cache applies to --mode rag or --mode both, not retrieval-only.")
+    if args.semantic_cache:
+        args.cache_session = args.cache_session or uuid.uuid4().hex[:16]
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,79}", args.cache_session):
+            parser.error("--cache-session must be 1-80 ASCII letters/digits/underscores/hyphens, starting with a letter/digit.")
+    cache_config = SemanticCacheConfig(
+        enabled=args.semantic_cache,
+        redis_url=args.redis_url or os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0"),
+        base_name=args.cache_name,
+        session_id=args.cache_session or "",
+        distance_threshold=args.cache_threshold,
+        ttl=args.cache_ttl or None,
+        reset_policy=args.cache_reset,
+        embedding_model_name=args.cache_embedding_model,
+        embedding_device=args.cache_embedding_device,
+        corpus_version=args.cache_corpus_version,
+    )
+
+    script_path = Path(__file__).resolve()
+    if args.project_root is None:
+        project_root = script_path.parents[1]
+    else:
+        project_root = Path(args.project_root).expanduser().resolve()
+
+    query_file = resolve_path(project_root, args.queries)
+    database_dir = resolve_path(project_root, args.database)
+    output_root = resolve_path(project_root, args.output_root)
+    k_values = parse_csv_values(args.k_values, int)
+    if not k_values or any(k < 1 for k in k_values) or len(set(k_values)) != len(k_values):
+        parser.error("--k-values must contain unique positive integers.")
+    seed = None if args.seed == -1 else args.seed
+    retrieval_include = parse_retrieval_include(args.retrieval_include)
+
+    print("=" * 70)
+    print("PUBMED RAG TIMING EXPERIMENT")
+    print("=" * 70)
+    print(f"Project root: {project_root}")
+    print(f"Query file: {query_file}")
+    print(f"Database directory: {database_dir}")
+    print(f"Preferred collection name: {args.collection_name}")
+    print(f"Output root: {output_root}")
+    print(f"K values: {k_values}")
+    print(f"Mode: {args.mode}")
+    print(f"Random seed: {'non-deterministic' if seed is None else seed}")
+    print(f"Retrieval-only iterations: {args.retrieval_iterations}")
+    print(f"Full RAG iterations: {args.rag_iterations}")
+    print(f"Redis semantic cache: {'enabled' if args.semantic_cache else 'disabled'}")
+    if args.semantic_cache:
+        print(f"Cache session: {args.cache_session}; reset policy: {args.cache_reset}")
+
+    if not query_file.exists():
+        raise FileNotFoundError(f"Query file not found: {query_file}")
+    if not database_dir.exists():
+        raise FileNotFoundError(f"Chroma database directory not found: {database_dir}")
+
+    query_items, frequency_keys, length_keys, category_keys, query_counts = load_query_dataset(
+        query_file=query_file,
+        frequency_keys_arg=args.frequency_keys,
+        length_keys_arg=args.length_keys,
+        category_keys_arg=args.category_keys,
+        max_queries_per_cell=args.max_queries_per_cell,
+        seed=seed,
+    )
+
+    print("\nLoaded query dataset:")
+    print(f"  Frequency keys: {frequency_keys}")
+    print(f"  Length keys: {length_keys}")
+    print(f"  Category keys: {category_keys}")
+    print(f"  Total queries used: {len(query_items)}")
+    for frequency in frequency_keys:
+        for length in length_keys:
+            for category in category_keys:
+                print(
+                    f"    {frequency}/{length}/{category}: "
+                    f"{query_counts[frequency][length][category]}"
+                )
+
+    output_root.mkdir(parents=True, exist_ok=True)
+    actual_collection_name = args.collection_name
+    # Save setup before measurements, so the cache session survives a failed run.
+    write_run_config(
+        output_root / "run_config.json", args, query_counts,
+        frequency_keys, length_keys, category_keys, actual_collection_name,
+    )
+
+    if args.mode in {"both", "retrieval"}:
+        retrieval_output_dir = output_root / "chroma_hnsw_retrieval_only"
+        retrieval_results, retrieval_raw_rows, actual_collection_name = run_retrieval_only_benchmark(
+            query_items=query_items,
+            frequency_keys=frequency_keys,
+            length_keys=length_keys,
+            database_dir=database_dir,
+            collection_name=args.collection_name,
+            embedding_model_name=args.embedding_model,
+            k_values=k_values,
+            num_iterations=args.retrieval_iterations,
+            seed=seed,
+            include=retrieval_include,
+            batch_size=args.embedding_batch_size,
+        )
+        generate_all_outputs(
+            results_by_k=retrieval_results,
+            raw_rows=retrieval_raw_rows,
+            output_dir=retrieval_output_dir,
+            k_values=k_values,
+            frequency_keys=frequency_keys,
+            length_keys=length_keys,
+            category_keys=category_keys,
+            title_prefix="ChromaDB/HNSW Retrieval-only",
+            benchmark_name="chroma_hnsw_retrieval_only",
+            raw_filename="raw_retrieval_latencies.csv",
+            latency_column_label="retrieval_latency_ms",
+        )
+
+    if args.mode in {"both", "rag"}:
+        rag_output_dir = output_root / "full_rag_end_to_end"
+        (
+            rag_results,
+            rag_retrieval_component_results,
+            rag_llm_component_results,
+            rag_raw_rows,
+        ) = run_full_rag_benchmark(
+            query_items=query_items,
+            frequency_keys=frequency_keys,
+            length_keys=length_keys,
+            database_dir=database_dir,
+            collection_name=actual_collection_name,
+            embedding_model_name=args.embedding_model,
+            llm_model_name=args.llm_model,
+            k_values=k_values,
+            num_iterations=args.rag_iterations,
+            seed=seed,
+            max_new_tokens=args.max_new_tokens,
+            cache_config=cache_config,
+        )
+        # Save unfiltered cache summaries before generating the legacy plots.
+        rag_output_dir.mkdir(parents=True, exist_ok=True)
+        save_cache_summaries(rag_raw_rows, rag_output_dir)
+
+        generate_all_outputs(
+            results_by_k=rag_results,
+            raw_rows=rag_raw_rows,
+            output_dir=rag_output_dir,
+            k_values=k_values,
+            frequency_keys=frequency_keys,
+            length_keys=length_keys,
+            category_keys=category_keys,
+            title_prefix="Full RAG End-to-end",
+            benchmark_name="full_rag_end_to_end",
+            raw_filename="per_query_rag_llm_latencies.csv",
+            latency_column_label="rag_end_to_end_latency_ms",
+        )
+
+        # Additional summaries and graphs specifically for the component timings.
+        save_rag_component_summary(rag_raw_rows, rag_output_dir)
+
+        rag_retrieval_component_dir = output_root / "full_rag_retrieval_component"
+        generate_all_outputs(
+            results_by_k=rag_retrieval_component_results,
+            raw_rows=rag_raw_rows,
+            output_dir=rag_retrieval_component_dir,
+            k_values=k_values,
+            frequency_keys=frequency_keys,
+            length_keys=length_keys,
+            category_keys=category_keys,
+            title_prefix="Full RAG Retrieval Component",
+            benchmark_name="full_rag_retrieval_component",
+            raw_filename="per_query_rag_components.csv",
+            latency_column_label="retrieval_latency_ms",
+        )
+
+        rag_llm_component_dir = output_root / "full_rag_llm_component"
+        generate_all_outputs(
+            results_by_k=rag_llm_component_results,
+            raw_rows=rag_raw_rows,
+            output_dir=rag_llm_component_dir,
+            k_values=k_values,
+            frequency_keys=frequency_keys,
+            length_keys=length_keys,
+            category_keys=category_keys,
+            title_prefix="Full RAG LLM Invocation (Cache + Optional Generation)",
+            benchmark_name="full_rag_llm_component",
+            raw_filename="per_query_rag_components.csv",
+            latency_column_label="llm_latency_ms",
+        )
+
+    write_run_config(
+        output_root / "run_config.json",
+        args=args,
+        query_counts=query_counts,
+        frequency_keys=frequency_keys,
+        length_keys=length_keys,
+        category_keys=category_keys,
+        actual_collection_name=actual_collection_name,
+    )
+
+    print("\n" + "=" * 70)
+    print("PUBMED EXPERIMENT COMPLETED")
+    print("=" * 70)
+    print(f"Results saved under: {output_root}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,206 @@
+PUBMED QUERY TEMPLATES
+Target noun placeholder: TARGET
+
+============================================================
+CATEGORY: Disease or condition
+============================================================
+
+SHORT
+1. What characterizes TARGET?
+2. What causes TARGET?
+3. Which symptoms indicate TARGET?
+4. How is TARGET diagnosed?
+5. How does TARGET progress?
+6. How is TARGET managed?
+7. What outcomes follow TARGET?
+8. Who develops TARGET most?
+9. What mechanisms drive TARGET?
+10. What limits research on TARGET?
+
+MEDIUM
+1. What clinical characteristics most consistently define TARGET across available biomedical studies and reviews?
+2. Which causes and risk factors are most strongly associated with TARGET in published studies?
+3. Which symptoms and clinical signs most commonly indicate TARGET in affected patients across published studies?
+4. Which tests and clinical criteria are commonly used to diagnose TARGET in medical practice?
+5. How does TARGET typically progress from initial presentation to advanced clinical stages over time?
+6. Which management strategies and treatments are most frequently reported for TARGET in clinical research?
+7. Which prognostic factors and outcomes are most consistently reported for patients with TARGET?
+8. Which populations show the highest prevalence or greatest clinical burden of TARGET across studies?
+9. Which biological mechanisms are proposed to explain the development and persistence of TARGET?
+10. Which methodological limitations and evidence gaps most affect current research conclusions about TARGET?
+
+LONG
+1. According to the retrieved biomedical literature, what clinical characteristics, defining features, common presentations, and distinguishing findings are most consistently associated with TARGET, and how do authors differentiate it from related conditions when describing affected patients across different study settings and contexts?
+2. According to the retrieved biomedical literature, which genetic, environmental, behavioral, demographic, and clinical risk factors are most strongly associated with TARGET, and what evidence supports or weakens proposed causal relationships across observational studies, experiments, reviews, patient populations, and clinical contexts?
+3. According to the retrieved biomedical literature, which symptoms, clinical signs, laboratory abnormalities, and early warning features most commonly indicate TARGET, and how does its presentation vary across disease stages, patient subgroups, care settings, reported levels of severity, and underlying causes?
+4. According to the retrieved biomedical literature, which examinations, laboratory tests, imaging procedures, biomarkers, and clinical criteria are used to diagnose TARGET, and what limitations, uncertainties, or sources of error affect diagnostic accuracy across different populations, healthcare settings, and disease stages?
+5. According to the retrieved biomedical literature, how does TARGET usually progress from initial onset through later stages, and which clinical, biological, or demographic factors are associated with remission, recurrence, complications, deterioration, or other changes in its natural history across patient populations?
+6. According to the retrieved biomedical literature, which treatments, supportive measures, preventive strategies, and monitoring approaches are used to manage TARGET, and what evidence describes their benefits, risks, indications, contraindications, and effectiveness across different groups of patients and stages of illness?
+7. According to the retrieved biomedical literature, which short term and long term outcomes are reported for patients with TARGET, and which clinical, biological, treatment related, or demographic factors are most consistently associated with recovery, complications, recurrence, disability, or mortality across studied populations?
+8. According to the retrieved biomedical literature, which age groups, sexes, geographic populations, occupational groups, or other patient subgroups experience the greatest prevalence or burden of TARGET, and what explanations are proposed for the observed differences between these populations across regions and periods?
+9. According to the retrieved biomedical literature, which cellular, molecular, physiological, immunological, or genetic mechanisms are proposed to initiate and sustain TARGET, and how strong is the evidence connecting those mechanisms with observed clinical features, progression, treatment response, and outcomes in affected populations?
+10. According to the retrieved biomedical literature, which methodological weaknesses, inconsistent definitions, sampling limitations, measurement problems, and unresolved questions most restrict current conclusions about TARGET, and what research priorities are proposed to improve the reliability and applicability of future evidence across clinical settings?
+
+
+============================================================
+CATEGORY: Treatment or intervention
+============================================================
+
+SHORT
+1. What is TARGET used for?
+2. How does TARGET work?
+3. How is TARGET delivered?
+4. How effective is TARGET?
+5. What risks accompany TARGET?
+6. How does TARGET compare?
+7. Who benefits from TARGET?
+8. How is TARGET monitored?
+9. What outcomes follow TARGET?
+10. What limits evidence on TARGET?
+
+MEDIUM
+1. Which clinical indications and patient needs most commonly justify using TARGET in practice?
+2. Which biological or clinical mechanisms explain how TARGET produces its intended effects in patients?
+3. How is TARGET administered, delivered, scheduled, or adjusted across different clinical settings and populations?
+4. How effective is TARGET for improving clinically important outcomes in studied patient populations?
+5. Which adverse effects, complications, and safety concerns are most consistently associated with TARGET?
+6. How does TARGET compare with alternative interventions regarding effectiveness, safety, cost, and feasibility?
+7. Which patient characteristics predict greater benefit or higher risk when receiving TARGET in practice?
+8. Which measures are commonly used to monitor response and complications during TARGET over time?
+9. Which short term and long term outcomes are reported after patients receive TARGET?
+10. Which evidence gaps and methodological limitations restrict reliable conclusions about TARGET in clinical research?
+
+LONG
+1. According to the retrieved biomedical literature, which clinical indications, symptoms, diagnoses, disease stages, or patient needs most commonly justify using TARGET, and what criteria do clinicians or researchers apply when deciding whether this intervention is appropriate for a particular population?
+2. According to the retrieved biomedical literature, which molecular, cellular, physiological, behavioral, or clinical mechanisms explain how TARGET produces its intended effects, and what evidence supports the proposed sequence linking the intervention with measurable changes in patient outcomes across different biological contexts?
+3. According to the retrieved biomedical literature, how is TARGET administered, delivered, scheduled, dosed, or adjusted across clinical settings, and which practical, biological, or patient related factors influence the selected route, intensity, duration, frequency, and timing of treatment for different patient groups?
+4. According to the retrieved biomedical literature, how effective is TARGET for improving symptoms, function, survival, quality of life, or other important outcomes, and how consistent are the reported benefits across study designs, patient populations, disease stages, and follow up periods?
+5. According to the retrieved biomedical literature, which adverse effects, complications, contraindications, interactions, or safety concerns are associated with TARGET, and how frequently, severely, or predictably do these problems occur across different patient groups, treatment settings, doses, and durations during routine clinical use?
+6. According to the retrieved biomedical literature, how does TARGET compare with alternative interventions regarding effectiveness, safety, acceptability, cost, accessibility, and practical implementation, and which differences appear most important when selecting an option for specific patients or clinical settings in routine medical practice?
+7. According to the retrieved biomedical literature, which demographic, clinical, genetic, behavioral, or biological characteristics predict greater benefit or higher risk from TARGET, and how reliably can those characteristics guide patient selection, shared decisions, and individualized treatment planning across diverse clinical populations?
+8. According to the retrieved biomedical literature, which symptoms, biomarkers, examinations, imaging findings, or outcome measures are used to monitor patients receiving TARGET, and how are treatment response, adherence, complications, and reasons for modification or discontinuation evaluated over time across different care settings?
+9. According to the retrieved biomedical literature, which short term and long term outcomes follow TARGET, including recovery, recurrence, complications, disability, survival, and quality of life, and which factors most consistently influence whether those outcomes are favorable or unfavorable across diverse patient populations?
+10. According to the retrieved biomedical literature, which methodological limitations, inconsistent outcome definitions, sampling problems, missing comparisons, and unresolved questions restrict conclusions about TARGET, and what research priorities are proposed to strengthen the reliability, generalizability, and clinical usefulness of future evidence?
+
+
+============================================================
+CATEGORY: Biological entity
+============================================================
+
+SHORT
+1. What is TARGET?
+2. What does TARGET do?
+3. Where is TARGET found?
+4. What interacts with TARGET?
+5. How is TARGET regulated?
+6. Which diseases involve TARGET?
+7. How is TARGET measured?
+8. How does TARGET vary?
+9. Why target TARGET therapeutically?
+10. What limits research on TARGET?
+
+MEDIUM
+1. How is TARGET classified and described across current molecular and cellular research studies?
+2. Which biological functions are most consistently attributed to TARGET in published experimental studies?
+3. Where is TARGET located, expressed, or concentrated across tissues, cells, and biological compartments?
+4. Which molecules, cells, structures, or pathways interact most directly with TARGET in biological systems?
+5. Which mechanisms regulate the production, activity, stability, or degradation of TARGET in cells?
+6. Which diseases or pathological processes are most consistently associated with altered TARGET levels?
+7. Which experimental or clinical methods are commonly used to detect and quantify TARGET?
+8. How do genetic, structural, or functional variations in TARGET affect its biological behavior?
+9. Why is TARGET considered a potential biomarker or therapeutic target in biomedical research?
+10. Which evidence gaps and methodological limitations restrict current conclusions about TARGET in biomedical research?
+
+LONG
+1. According to the retrieved biomedical literature, how is TARGET defined, classified, named, and distinguished from related biological entities, and which molecular, cellular, structural, or functional characteristics are most consistently used to describe its identity across experimental and clinical research settings?
+2. According to the retrieved biomedical literature, which biological functions are attributed to TARGET, and what experimental or clinical evidence explains its contribution to cellular processes, physiological systems, development, adaptation, signaling, maintenance, or responses to changing biological conditions across diverse experimental models?
+3. According to the retrieved biomedical literature, where is TARGET located, expressed, produced, or concentrated across tissues, cell types, organelles, fluids, and other biological compartments, and how does its distribution change with development, health, disease, or environmental conditions across different studied populations?
+4. According to the retrieved biomedical literature, which molecules, receptors, genes, proteins, cells, structures, or pathways interact with TARGET, and what evidence explains the direction, strength, biological consequences, and context dependence of those interactions across experimental systems and clinical research settings?
+5. According to the retrieved biomedical literature, which genetic, molecular, cellular, environmental, or physiological mechanisms regulate the production, activation, localization, stability, and degradation of TARGET, and how do those controls change across tissues, developmental stages, disease states, or experimental conditions over time?
+6. According to the retrieved biomedical literature, which diseases, symptoms, pathological processes, or clinical outcomes are associated with altered TARGET, and what evidence supports a causal, protective, predictive, or merely correlational relationship between those changes and observed patient characteristics across studied patient populations?
+7. According to the retrieved biomedical literature, which laboratory, imaging, sequencing, biochemical, or computational methods are used to detect and quantify TARGET, and how do their sensitivity, specificity, reproducibility, sample requirements, technical limitations, and interpretation differ across studies and research settings?
+8. According to the retrieved biomedical literature, how do genetic variants, structural forms, expression levels, modifications, or functional states of TARGET influence its biological activity, interactions, localization, stability, and association with measurable cellular, physiological, or clinical outcomes across different experimental and clinical contexts?
+9. According to the retrieved biomedical literature, why is TARGET considered a potential biomarker, diagnostic indicator, prognostic factor, or therapeutic target, and what evidence supports its clinical usefulness, actionability, specificity, safety, and relevance across different diseases, patient populations, and clinical settings?
+10. According to the retrieved biomedical literature, which inconsistent definitions, sampling limitations, measurement errors, model dependencies, conflicting findings, and unresolved questions restrict current conclusions about TARGET, and what research priorities could improve the reliability, comparability, and clinical applicability of future evidence?
+
+
+============================================================
+CATEGORY: Diagnostic method
+============================================================
+
+SHORT
+1. When is TARGET used?
+2. How is TARGET performed?
+3. What does TARGET detect?
+4. How accurate is TARGET?
+5. How reliable is TARGET?
+6. How does TARGET compare?
+7. Who should receive TARGET?
+8. What risks accompany TARGET?
+9. How is TARGET interpreted?
+10. What limits evidence on TARGET?
+
+MEDIUM
+1. Which clinical indications most commonly determine when TARGET is used in patient care?
+2. Which procedural steps, samples, instruments, and preparations are required to perform TARGET correctly?
+3. Which diseases, abnormalities, biomarkers, or physiological changes can TARGET detect or characterize reliably?
+4. What sensitivity, specificity, and predictive performance are reported for TARGET across clinical studies?
+5. How reproducible and reliable are TARGET results across operators, laboratories, and patient populations?
+6. How does TARGET compare with alternative diagnostic approaches regarding accuracy, cost, and feasibility?
+7. Which patient characteristics or clinical settings make TARGET most appropriate or informative clinically?
+8. Which risks, burdens, contraindications, or complications are associated with undergoing TARGET in practice?
+9. How should TARGET results be interpreted and incorporated into subsequent clinical decisions appropriately?
+10. Which evidence gaps and methodological limitations restrict reliable conclusions about TARGET in clinical research?
+
+LONG
+1. According to the retrieved biomedical literature, which symptoms, risk profiles, preliminary findings, disease stages, or clinical questions most commonly justify using TARGET, and what criteria determine whether this diagnostic approach is appropriate for a particular patient or care setting in practice?
+2. According to the retrieved biomedical literature, which preparation steps, samples, instruments, technical procedures, quality controls, and operator decisions are required to perform TARGET, and how do variations in execution influence the validity, safety, and interpretability of the resulting findings across different settings?
+3. According to the retrieved biomedical literature, which diseases, abnormalities, biomarkers, anatomical changes, or physiological processes can TARGET detect or characterize, and what evidence defines the range, stage, severity, or biological context in which those targets are identifiable across diverse patient populations?
+4. According to the retrieved biomedical literature, what sensitivity, specificity, predictive values, detection limits, and classification performance are reported for TARGET, and how do prevalence, thresholds, reference standards, patient selection, and study design influence estimates of diagnostic accuracy across different clinical settings?
+5. According to the retrieved biomedical literature, how reproducible and reliable are TARGET results across repeated measurements, operators, laboratories, instruments, and patient populations, and which technical, biological, interpretive, or procedural factors account for disagreement or variability between assessments across clinical research settings?
+6. According to the retrieved biomedical literature, how does TARGET compare with alternative diagnostic approaches regarding accuracy, invasiveness, speed, cost, accessibility, required expertise, and clinical usefulness, and which tradeoffs matter most when selecting a method for particular patients or settings in routine practice?
+7. According to the retrieved biomedical literature, which demographic, clinical, anatomical, behavioral, or biological characteristics make TARGET more or less appropriate, accurate, feasible, or informative, and how should clinicians select patients and settings for its use across diverse healthcare and research contexts?
+8. According to the retrieved biomedical literature, which physical risks, psychological burdens, contraindications, complications, discomforts, or incidental findings are associated with TARGET, and how frequently and severely do they occur across patient groups, procedural settings, and levels of operator experience during routine care?
+9. According to the retrieved biomedical literature, how should positive, negative, uncertain, borderline, or conflicting TARGET results be interpreted, and how do those interpretations influence additional testing, diagnosis, treatment selection, monitoring, communication, and subsequent clinical decisions for patients across different clinical settings?
+10. According to the retrieved biomedical literature, which reference standard problems, selection biases, inconsistent thresholds, small samples, reporting gaps, and unresolved questions restrict conclusions about TARGET, and what research priorities could improve its validation, comparability, implementation, and clinical usefulness across diverse patient populations?
+
+
+============================================================
+CATEGORY: Anatomy
+============================================================
+
+SHORT
+1. Where is TARGET located?
+2. What structures compose TARGET?
+3. What does TARGET do?
+4. What connects to TARGET?
+5. How does TARGET develop?
+6. How does TARGET vary?
+7. Which diseases affect TARGET?
+8. How is TARGET imaged?
+9. Why is TARGET clinically important?
+10. What limits research on TARGET?
+
+MEDIUM
+1. Where is TARGET located, and which anatomical regions or landmarks define its boundaries?
+2. Which tissues, layers, compartments, or components normally form the internal organization of TARGET?
+3. Which physiological or mechanical functions are most consistently attributed to TARGET in humans?
+4. Which neighboring structures, vessels, nerves, or pathways connect with TARGET anatomically in humans?
+5. How does TARGET develop and change across prenatal, postnatal, and adult life stages?
+6. Which normal anatomical variations of TARGET are reported across individuals and populations in studies?
+7. Which diseases, injuries, or pathological processes most commonly affect TARGET in clinical practice?
+8. Which imaging or examination methods best visualize and assess TARGET clinically in patients?
+9. Why is TARGET important for diagnosis, treatment planning, or surgical procedures in medicine?
+10. Which evidence gaps and methodological limitations restrict current anatomical research on TARGET in humans?
+
+LONG
+1. According to the retrieved biomedical literature, where is TARGET located within the body, which anatomical planes, regions, landmarks, and boundaries define its position, and how does that location differ across individuals, developmental stages, body sizes, or clinically relevant variants across populations?
+2. According to the retrieved biomedical literature, which tissues, layers, compartments, surfaces, and internal components form TARGET, and how are those elements organized structurally and spatially to support its normal anatomy across different individuals, developmental stages, and diverse relevant clinical contexts?
+3. According to the retrieved biomedical literature, which physiological, mechanical, sensory, regulatory, or supportive functions are attributed to TARGET, and what evidence explains how its anatomical organization enables those functions under normal conditions and during changing biological demands across different life stages?
+4. According to the retrieved biomedical literature, which neighboring organs, tissues, vessels, nerves, ducts, ligaments, or pathways connect with TARGET, and how do those anatomical relationships influence communication, movement, blood flow, innervation, drainage, vulnerability, or clinical access in health and disease?
+5. According to the retrieved biomedical literature, how does TARGET form and change during embryonic, fetal, postnatal, and adult development, and which genetic, cellular, mechanical, hormonal, or environmental processes influence its growth, maturation, remodeling, and age related changes across different patient populations?
+6. According to the retrieved biomedical literature, which normal variations in the size, shape, position, number, branching, composition, or connectivity of TARGET occur across individuals and populations, and what developmental, demographic, genetic, or clinical factors explain those differences across regions and age groups?
+7. According to the retrieved biomedical literature, which diseases, injuries, developmental abnormalities, degenerative changes, infections, tumors, or other pathological processes affect TARGET, and how do those conditions alter its anatomy, function, appearance, relationships, and associated clinical outcomes across diverse patient populations?
+8. According to the retrieved biomedical literature, which imaging, endoscopic, surgical, laboratory, or physical examination methods best visualize and assess TARGET, and how do their resolution, accuracy, invasiveness, limitations, and interpretation differ across clinical questions, patient populations, and different healthcare settings?
+9. According to the retrieved biomedical literature, why is TARGET important for diagnosis, procedural planning, treatment delivery, surgery, rehabilitation, or prognosis, and which anatomical landmarks, variants, relationships, or vulnerabilities must clinicians consider to avoid complications and improve patient outcomes during routine clinical care?
+10. According to the retrieved biomedical literature, which inconsistent definitions, sampling limitations, imaging constraints, measurement errors, population biases, and unresolved questions restrict current knowledge about TARGET, and what research priorities could improve anatomical accuracy, comparability, representation, and clinical applicability across research and clinical settings?

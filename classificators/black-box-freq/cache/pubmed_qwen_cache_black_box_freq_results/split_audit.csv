@@ -1,0 +1,13 @@
+split,frequency,queries,target_nouns
+train,Very high,240,8
+train,High,238,8
+train,Moderate,238,8
+train,Low,238,8
+train,Very low,238,8
+train,Term not present,238,8
+test,Very high,60,2
+test,High,60,2
+test,Moderate,60,2
+test,Low,60,2
+test,Very low,60,2
+test,Term not present,60,2

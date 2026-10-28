@@ -1,0 +1,140 @@
+{
+    "very high frequency": {
+        "short": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        },
+        "medium": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        },
+        "long": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        }
+    },
+    "high frequency": {
+        "short": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        },
+        "medium": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        },
+        "long": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        }
+    },
+    "moderate frecuency": {
+        "short": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        },
+        "medium": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        },
+        "long": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        }
+    },
+    "low frequency": {
+        "short": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        },
+        "medium": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        },
+        "long": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        }
+    },
+    "very low frequency": {
+        "short": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        },
+        "medium": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        },
+        "long": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        }
+    },
+    "term not present": {
+        "short": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        },
+        "medium": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        },
+        "long": {
+            "Person or social role": [],
+            "Object or artifact": [],
+            "Place or setting": [],
+            "Institution or collective": [],
+            "Abstract concept": []
+        }
+    }
+}

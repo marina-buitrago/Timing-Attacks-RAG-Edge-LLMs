@@ -1,0 +1,30 @@
+{
+  "selected_model": "balanced_entropy_random_forest",
+  "selection_rule": "highest grouped-CV macro F1 on training nouns",
+  "train_queries": 1440,
+  "test_queries": 360,
+  "train_target_nouns": 48,
+  "test_target_nouns": 12,
+  "categorical_features": [
+    "length"
+  ],
+  "numeric_feature_count": 312,
+  "normal_metrics": {
+    "accuracy": 0.7861111111111111,
+    "balanced_accuracy": 0.7861111111111111,
+    "macro_f1": 0.7813803101228453,
+    "weighted_f1": 0.7813803101228454
+  },
+  "ordinal_weighted_metrics": {
+    "ow_accuracy": 0.9066666666666666,
+    "macro_ow_precision": 0.9160138097516332,
+    "macro_ow_recall": 0.9066666666666667,
+    "macro_ow_f1": 0.908696123018767
+  },
+  "matched_supplied_baseline_metrics": {
+    "accuracy": 0.7833333333333333,
+    "balanced_accuracy": 0.7833333333333333,
+    "macro_f1": 0.7796990716411223,
+    "weighted_f1": 0.7796990716411224
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "method": "anchor-only ordinal semi-supervised quantile model",
+  "random_state": 42,
+  "raw_timing_columns_used": [
+    "rag_end_to_end_latency_ms"
+  ],
+  "model_feature_columns": [
+    "log1p_e2e_k5_iteration1_ms",
+    "log1p_e2e_k5_iteration2_ms",
+    "log1p_e2e_k20_iteration1_ms",
+    "log1p_e2e_k20_iteration2_ms",
+    "log1p_e2e_k50_iteration1_ms",
+    "log1p_e2e_k50_iteration2_ms",
+    "log1p_e2e_k100_iteration1_ms",
+    "log1p_e2e_k100_iteration2_ms"
+  ],
+  "labeled_anchor_classes": [
+    "Very high",
+    "Very low",
+    "Term not present"
+  ],
+  "masked_training_classes": [
+    "High",
+    "Moderate",
+    "Low"
+  ],
+  "number_initially_labeled": 720,
+  "number_initially_unlabeled": 720,
+  "ordinal_cut_points": [
+    1.6435149638511324,
+    2.5851437167570444,
+    3.2681629587545755,
+    3.87607726899028,
+    4.2447700290070225
+  ],
+  "normal_metrics": {
+    "accuracy": 0.3888888888888889,
+    "balanced_accuracy": 0.3888888888888889,
+    "macro_f1": 0.3778799905023191,
+    "weighted_f1": 0.3778799905023191
+  },
+  "ordinal_weighted_metrics": {
+    "ow_accuracy": 0.7288888888888888,
+    "macro_ow_precision": 0.7251709135241927,
+    "macro_ow_recall": 0.7288888888888888,
+    "macro_ow_f1": 0.7223888943234096
+  }
+}

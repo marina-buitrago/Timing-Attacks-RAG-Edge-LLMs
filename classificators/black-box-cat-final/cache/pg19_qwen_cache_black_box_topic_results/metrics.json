@@ -1,0 +1,47 @@
+{
+  "corpus": "PG19",
+  "model": "qwen",
+  "box": "black",
+  "cache": true,
+  "prediction_unit": "target noun (all its probes combined)",
+  "nouns": 60,
+  "probes": 1800,
+  "feature_count": 50,
+  "signals_used": [
+    "rag_end_to_end_latency_ms",
+    "answer_num_chars"
+  ],
+  "never_used": [
+    "query_text",
+    "query length (any form)",
+    "prompt_num_chars (contains the query)",
+    "position_in_shuffled_iteration (send order)",
+    "query_id / category / frequency fields",
+    "cache telemetry columns"
+  ],
+  "drift_correction_window": 101,
+  "evaluation": "nested 5x3 noun cross-validation, seeds [0, 1, 2]",
+  "random_baseline": 0.2,
+  "held_out_test": {
+    "macro_f1": 0.4342254567761814,
+    "accuracy": 0.4388888888888889,
+    "balanced_accuracy": 0.4388888888888889,
+    "weighted_f1": 0.4342254567761814,
+    "macro_f1_std": 0.025061307502959592,
+    "accuracy_std": 0.02078698548207745,
+    "balanced_accuracy_std": 0.020786985482077473,
+    "weighted_f1_std": 0.025061307502959547
+  },
+  "permutation_test": {
+    "permutations": 50,
+    "null_mean": 0.20246955740399009,
+    "null_95th_percentile": 0.3369963922940079,
+    "p_value": 0.0196078431372549
+  },
+  "selected_models": {
+    "extra_trees_wide": 7,
+    "extra_trees_narrow": 5,
+    "logistic_regression": 2,
+    "random_forest": 1
+  }
+}

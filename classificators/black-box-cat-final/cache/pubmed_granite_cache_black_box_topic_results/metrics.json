@@ -1,0 +1,47 @@
+{
+  "corpus": "PubMed",
+  "model": "granite",
+  "box": "black",
+  "cache": true,
+  "prediction_unit": "target noun (all its probes combined)",
+  "nouns": 60,
+  "probes": 1790,
+  "feature_count": 50,
+  "signals_used": [
+    "rag_end_to_end_latency_ms",
+    "answer_num_chars"
+  ],
+  "never_used": [
+    "query_text",
+    "query length (any form)",
+    "prompt_num_chars (contains the query)",
+    "position_in_shuffled_iteration (send order)",
+    "query_id / category / frequency fields",
+    "cache telemetry columns"
+  ],
+  "drift_correction_window": 101,
+  "evaluation": "nested 5x3 noun cross-validation, seeds [0, 1, 2]",
+  "random_baseline": 0.2,
+  "held_out_test": {
+    "macro_f1": 0.4124100344100344,
+    "accuracy": 0.4222222222222223,
+    "balanced_accuracy": 0.4222222222222222,
+    "weighted_f1": 0.4124100344100344,
+    "macro_f1_std": 0.01440663581208154,
+    "accuracy_std": 0.00785674201318386,
+    "balanced_accuracy_std": 0.0078567420131839,
+    "weighted_f1_std": 0.014406635812081564
+  },
+  "permutation_test": {
+    "permutations": 50,
+    "null_mean": 0.18856677347346465,
+    "null_95th_percentile": 0.2786287625418059,
+    "p_value": 0.0196078431372549
+  },
+  "selected_models": {
+    "random_forest": 5,
+    "logistic_regression": 4,
+    "extra_trees_narrow": 3,
+    "extra_trees_wide": 3
+  }
+}

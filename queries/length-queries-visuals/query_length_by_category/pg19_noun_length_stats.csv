@@ -1,0 +1,61 @@
+noun,category,probes,length_mean,length_std
+high_frequency__abstract_concept__0,Abstract concept,30,141.8,120.46931216045766
+high_frequency__abstract_concept__1,Abstract concept,30,140.8,120.46931216045766
+high_frequency__institution_or_collective__0,Institution or collective,30,142.5,121.5008868989909
+high_frequency__institution_or_collective__1,Institution or collective,30,140.5,121.5008868989909
+high_frequency__object_or_artifact__0,Object or artifact,30,138.13333333333333,119.88952769351755
+high_frequency__object_or_artifact__1,Object or artifact,30,139.13333333333333,119.88952769351755
+high_frequency__person_or_social_role__0,Person or social role,30,139.13333333333333,119.79227231231206
+high_frequency__person_or_social_role__1,Person or social role,30,142.13333333333333,119.79227231231206
+high_frequency__place_or_setting__0,Place or setting,30,141.66666666666666,120.52166305012477
+high_frequency__place_or_setting__1,Place or setting,30,141.66666666666666,120.52166305012477
+low_frequency__abstract_concept__0,Abstract concept,30,142.8,120.46931216045766
+low_frequency__abstract_concept__1,Abstract concept,30,141.8,120.46931216045766
+low_frequency__institution_or_collective__0,Institution or collective,30,141.5,121.5008868989909
+low_frequency__institution_or_collective__1,Institution or collective,30,143.5,121.5008868989909
+low_frequency__object_or_artifact__0,Object or artifact,30,140.13333333333333,119.88952769351755
+low_frequency__object_or_artifact__1,Object or artifact,30,140.13333333333333,119.88952769351755
+low_frequency__person_or_social_role__0,Person or social role,30,140.13333333333333,119.79227231231206
+low_frequency__person_or_social_role__1,Person or social role,30,140.13333333333333,119.79227231231206
+low_frequency__place_or_setting__0,Place or setting,30,142.66666666666666,120.52166305012477
+low_frequency__place_or_setting__1,Place or setting,30,140.66666666666666,120.52166305012477
+moderate_frecuency__abstract_concept__0,Abstract concept,30,141.8,120.46931216045766
+moderate_frecuency__abstract_concept__1,Abstract concept,30,144.8,120.46931216045766
+moderate_frecuency__institution_or_collective__0,Institution or collective,30,142.5,121.5008868989909
+moderate_frecuency__institution_or_collective__1,Institution or collective,30,142.5,121.5008868989909
+moderate_frecuency__object_or_artifact__0,Object or artifact,30,140.13333333333333,119.88952769351755
+moderate_frecuency__object_or_artifact__1,Object or artifact,30,137.13333333333333,119.88952769351755
+moderate_frecuency__person_or_social_role__0,Person or social role,30,138.13333333333333,119.79227231231206
+moderate_frecuency__person_or_social_role__1,Person or social role,30,139.13333333333333,119.79227231231206
+moderate_frecuency__place_or_setting__0,Place or setting,30,142.66666666666666,120.52166305012477
+moderate_frecuency__place_or_setting__1,Place or setting,30,145.66666666666666,120.52166305012481
+term_not_present__abstract_concept__0,Abstract concept,30,148.8,120.46931216045766
+term_not_present__abstract_concept__1,Abstract concept,30,144.8,120.46931216045766
+term_not_present__institution_or_collective__0,Institution or collective,30,141.5,121.5008868989909
+term_not_present__institution_or_collective__1,Institution or collective,30,145.5,121.5008868989909
+term_not_present__object_or_artifact__0,Object or artifact,30,139.13333333333333,119.88952769351755
+term_not_present__object_or_artifact__1,Object or artifact,30,140.13333333333333,119.88952769351755
+term_not_present__person_or_social_role__0,Person or social role,30,141.13333333333333,119.79227231231206
+term_not_present__person_or_social_role__1,Person or social role,30,141.13333333333333,119.79227231231206
+term_not_present__place_or_setting__0,Place or setting,30,144.66666666666666,120.52166305012481
+term_not_present__place_or_setting__1,Place or setting,30,161.66666666666666,120.52166305012477
+very_high_frequency__abstract_concept__0,Abstract concept,30,138.8,120.46931216045766
+very_high_frequency__abstract_concept__1,Abstract concept,30,139.8,120.46931216045766
+very_high_frequency__institution_or_collective__0,Institution or collective,30,141.5,121.5008868989909
+very_high_frequency__institution_or_collective__1,Institution or collective,30,140.5,121.5008868989909
+very_high_frequency__object_or_artifact__0,Object or artifact,30,137.13333333333333,119.88952769351755
+very_high_frequency__object_or_artifact__1,Object or artifact,30,137.13333333333333,119.88952769351755
+very_high_frequency__person_or_social_role__0,Person or social role,30,138.13333333333333,119.79227231231206
+very_high_frequency__person_or_social_role__1,Person or social role,30,139.13333333333333,119.79227231231206
+very_high_frequency__place_or_setting__0,Place or setting,30,139.66666666666666,120.52166305012477
+very_high_frequency__place_or_setting__1,Place or setting,30,138.66666666666666,120.52166305012477
+very_low_frequency__abstract_concept__0,Abstract concept,30,146.8,120.46931216045766
+very_low_frequency__abstract_concept__1,Abstract concept,30,145.8,120.46931216045766
+very_low_frequency__institution_or_collective__0,Institution or collective,30,144.5,121.5008868989909
+very_low_frequency__institution_or_collective__1,Institution or collective,30,149.5,121.5008868989909
+very_low_frequency__object_or_artifact__0,Object or artifact,30,141.13333333333333,119.88952769351755
+very_low_frequency__object_or_artifact__1,Object or artifact,30,140.13333333333333,119.88952769351755
+very_low_frequency__person_or_social_role__0,Person or social role,30,146.13333333333333,119.79227231231206
+very_low_frequency__person_or_social_role__1,Person or social role,30,139.13333333333333,119.79227231231206
+very_low_frequency__place_or_setting__0,Place or setting,30,145.66666666666666,120.52166305012481
+very_low_frequency__place_or_setting__1,Place or setting,30,144.66666666666666,120.52166305012481

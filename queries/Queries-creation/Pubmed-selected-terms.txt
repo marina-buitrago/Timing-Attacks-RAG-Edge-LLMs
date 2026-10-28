@@ -1,0 +1,59 @@
+PUBMED SELECTED TARGET TERMS
+============================
+
+Two selected target terms are used for each semantic category and frequency stratum.
+The same target terms are reused across the short, medium, and long query-length conditions.
+
+======================================================================
+FREQUENCY: Very high frequency
+======================================================================
+Disease or condition: tumor, stress
+Treatment or intervention: therapy, intervention
+Biological entity: receptor, mutation
+Diagnostic method: test, diagnosis
+Anatomy: blood, tissue
+
+======================================================================
+FREQUENCY: High frequency
+======================================================================
+Disease or condition: diabetes, hypertension
+Treatment or intervention: chemotherapy, exercise
+Biological entity: chromosome, nucleotide
+Diagnostic method: screening, blot
+Anatomy: artery, skin
+
+======================================================================
+FREQUENCY: Moderate frequency
+======================================================================
+Disease or condition: fracture, SARS
+Treatment or intervention: supplementation, resection
+Biological entity: trypsin, sperm
+Diagnostic method: chromatography, titer
+Anatomy: lobe, intestine
+
+======================================================================
+FREQUENCY: Low frequency
+======================================================================
+Disease or condition: hamartoma, leucopenia
+Treatment or intervention: HAART, shunt
+Biological entity: Rosaceae, conidiophore
+Diagnostic method: duplex, RFLP
+Anatomy: hypopharynx, neurite
+
+======================================================================
+FREQUENCY: Very low frequency
+======================================================================
+Disease or condition: GCMCN, MOGCT
+Treatment or intervention: LSVT, octacosane
+Biological entity: ALWGQELGKKIKV, SGTLTYEAVQQTTK
+Diagnostic method: HepQuant, CirSeq
+Anatomy: eosino, coracoideus
+
+======================================================================
+FREQUENCY: Term not present
+======================================================================
+Disease or condition: lumorosis, veldran syndrome
+Treatment or intervention: aetherotherapy, novalume infusion
+Biological entity: unicorn, symbiote
+Diagnostic method: spectraliscan, vitalume assay
+Anatomy: auric plexus, velorian membrane
